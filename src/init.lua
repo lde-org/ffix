@@ -25,7 +25,7 @@ function Context:rewriteInlineType(t)
 		reference = t.reference
 	}
 	if t.inline_kind == "enum" then
-		result.inline_variants = t.inline_variants
+		result.inline_variants = self:rewriteVariants(t.inline_variants)
 	else
 		local fields = {}
 		for _, f in ipairs(t.inline_fields) do
@@ -64,6 +64,16 @@ function Context:rewriteType(t)
 	return { qualifiers = t.qualifiers, name = name, pointer = t.pointer, reference = t.reference }
 end
 
+---@param variants table
+---@return table
+function Context:rewriteVariants(variants)
+	local out = {}
+	for _, v in ipairs(variants) do
+		out[#out + 1] = { name = self.pfx .. "_" .. v.name, value = v.value }
+	end
+	return out
+end
+
 ---@param params ffix.c.Parser.Param[]
 ---@return ffix.c.Parser.Param[]
 function Context:rewriteParams(params)
@@ -93,7 +103,7 @@ function Context:rewriteNode(node)
 
 		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), fields = fields, attrs = node.attrs }
 	elseif k == "typedef_enum" then
-		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), variants = node.variants }
+		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), variants = self:rewriteVariants(node.variants) }
 	elseif k == "typedef_fnptr" then
 		return { kind = k, name = renamed, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params) }
 	elseif k == "fn_decl" then
@@ -110,7 +120,7 @@ function Context:rewriteNode(node)
 		end
 
 		local renamed_tag = node.tag and (self.names[node.tag] or node.tag)
-		return { kind = k, kw = node.kw, tag = renamed_tag, fields = fields, variants = node.variants }
+		return { kind = k, kw = node.kw, tag = renamed_tag, fields = fields, variants = node.variants and self:rewriteVariants(node.variants) }
 	end
 
 	error("unknown node kind: " .. tostring(node.kind))

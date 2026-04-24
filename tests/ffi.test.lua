@@ -403,6 +403,13 @@ test.it("enum with explicit integer values", function()
 	test.equal(tonumber(v), 0)
 end)
 
+test.it("enum variants from two contexts do not collide", function()
+	local c1 = ctx()
+	local c2 = ctx()
+	c1:cdef("typedef enum { MY_OK = 0, MY_ERR = 1 } status_t;")
+	c2:cdef("typedef enum { MY_OK = 0, MY_ERR = 1 } status_t;")
+end)
+
 test.it("function pointer parameter", function()
 	local c = ctx()
 	c:cdef([[

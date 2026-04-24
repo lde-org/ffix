@@ -50,7 +50,7 @@ end)
 test.it("typedef enum is prefixed", function()
 	test.equal(
 		rewrite("mylib", "typedef enum { A, B, } Color;"),
-		"typedef enum {\n\tA,\n\tB,\n} mylib_Color;"
+		"typedef enum {\n\tmylib_A,\n\tmylib_B,\n} mylib_Color;"
 	)
 end)
 
