@@ -95,6 +95,9 @@ function Printer:node(node)
 		return table.concat(lines, "\n")
 
 	elseif k == "struct_def" then
+		if not node.fields and not node.variants then
+			return node.kw .. (node.tag and (" " .. node.tag) or "") .. ";"
+		end
 		local lines = { node.kw .. (node.tag and (" " .. node.tag) or "") .. " {" }
 		if node.fields then
 			for _, f in ipairs(node.fields) do

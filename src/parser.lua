@@ -542,6 +542,11 @@ function Parser:parseDecl()
 			return {{ kind = "struct_def", kw = kw_tok.variant,
 				tag = tag_tok and tag_tok.ident, fields = fields, variants = variants }}
 		end
+		-- forward declaration: struct Foo;
+		if tag_tok and self:peek() and self:peek().variant == ";" then
+			self:advance()
+			return {{ kind = "struct_def", kw = kw_tok.variant, tag = tag_tok.ident }}
+		end
 		self.ptr = saved
 	end
 

@@ -382,6 +382,14 @@ test.it("typedef struct with padding array fields", function()
 	test.equal(c:sizeof("git_submodule_update_options"), 376)
 end)
 
+test.it("bare forward struct declaration", function()
+	local c = ctx()
+	c:cdef([[
+		struct libdeflate_compressor;
+		struct libdeflate_decompressor;
+	]])
+end)
+
 test.it("enum with explicit integer values", function()
 	local c = ctx()
 	c:cdef([[
