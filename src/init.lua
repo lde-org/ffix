@@ -146,6 +146,17 @@ function Context:sizeof(typename)
 	return ffi.sizeof(self.names[typename] or typename)
 end
 
+---@param typename string
+---@param field string
+function Context:offsetof(typename, field)
+	return ffi.offsetof(self.names[typename] or typename, field)
+end
+
+---@param typename string
+function Context:alignof(typename)
+	return ffi.alignof(self.names[typename] or typename)
+end
+
 ---@param lib string
 function Context:load(lib)
 	return ffi.load(lib)
