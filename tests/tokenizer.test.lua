@@ -73,6 +73,26 @@ test.it("skips // comments", function()
 	test.match(tok("// comment\nint"), { { variant = "int" } })
 end)
 
+test.it("skips // comment with no trailing newline", function()
+	test.match(tok("int // trailing"), { { variant = "int" } })
+end)
+
+test.it("skips /* */ block comment", function()
+	test.match(tok("/* block */int"), { { variant = "int" } })
+end)
+
+test.it("skips multiline /* */ block comment", function()
+	test.match(tok("/*\n  block\n*/int"), { { variant = "int" } })
+end)
+
+test.it("skips /* */ block comment between tokens", function()
+	test.match(tok("int /* ignored */ x;"), {
+		{ variant = "int" },
+		{ variant = "ident", ident = "x" },
+		{ variant = ";" },
+	})
+end)
+
 test.it("skips # comments", function()
 	test.match(tok("# preprocessor\nchar"), { { variant = "char" } })
 end)

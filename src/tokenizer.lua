@@ -32,8 +32,19 @@ function Tokenizer:skipWhitespace()
 	return self:skip("^%s+")
 end
 
+function Tokenizer:skipLineComment()
+	return self:skip("^//[^\n]*\n?") or self:skip("^#[^\n]*\n?")
+end
+
+function Tokenizer:skipBlockComment()
+	if string.sub(self.src, self.ptr, self.ptr + 1) ~= "/*" then return end
+	local finish = string.find(self.src, "*/", self.ptr + 2, true)
+	self.ptr = finish and (finish + 2) or (self.len + 1)
+	return true
+end
+
 function Tokenizer:skipComments()
-	return self:skip("^//[^\n]+\n") or self:skip("^#[^\n]+\n")
+	return self:skipLineComment() or self:skipBlockComment()
 end
 
 ---@class ffix.c.Tokenizer.Token.Ident
@@ -133,7 +144,18 @@ function Tokenizer:tokenize(src)
 
 		local tok = self:next()
 		if not tok then
-			error("Unrecognized character: " .. string.sub(self.src, self.ptr, self.ptr))
+			local ch = string.sub(self.src, self.ptr, self.ptr)
+			local line, col = 1, 1
+			for i = 1, self.ptr - 1 do
+				if self.src:sub(i, i) == "\n" then line, col = line + 1, 1
+				else col = col + 1 end
+			end
+			local ls = self.ptr
+			while ls > 1 and self.src:sub(ls - 1, ls - 1) ~= "\n" do ls = ls - 1 end
+			local le = (self.src:find("\n", self.ptr) or self.len + 1) - 1
+			local snippet = self.src:sub(ls, le)
+			error(string.format("ffix: unexpected '%s' at line %d col %d\n  %s\n  %s^",
+				ch, line, col, snippet, string.rep(" ", col - 1)))
 		end
 
 		tokens[#tokens + 1] = tok

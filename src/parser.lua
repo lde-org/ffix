@@ -444,7 +444,7 @@ function Parser:parse(tokens)
 	end)
 
 	if not ok then
-		return false, nodes
+		return false, nodes, err
 	end
 
 	return true, nodes

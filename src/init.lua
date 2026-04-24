@@ -105,8 +105,8 @@ end
 ---@param code string
 function Context:cdef(code)
 	local tokens = Tokenizer.new():tokenize(code)
-	local ok, nodes = Parser.new():parse(tokens)
-	if not ok then error("ffix: failed to parse cdef block") end
+	local ok, nodes, err = Parser.new():parse(tokens)
+	if not ok then error("ffix: " .. tostring(err)) end
 
 	-- first pass: register all declared names
 	for _, node in ipairs(nodes) do
