@@ -167,6 +167,24 @@ test.it("istype returns false for non-matching ctype", function()
 	test.falsy(c:istype("B", a))
 end)
 
+-- error formatting
+
+test.it("parse error includes line, col and source context", function()
+	local c = ctx()
+	local ok, err = pcall(function()
+		c:cdef([[
+			typedef struct {
+				int x
+			} Foo;
+		]])
+	end)
+	test.falsy(ok)
+	test.truthy(err:find("line 3"))
+	test.truthy(err:find("col"))
+	test.truthy(err:find("int x"))
+	test.truthy(err:find("%^"))
+end)
+
 -- ffix.context() with no prefix (auto-generated)
 
 test.it("no-prefix context gets a non-empty pfx", function()

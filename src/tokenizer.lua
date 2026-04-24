@@ -1,3 +1,29 @@
+local function errorContext(src, pos)
+	local lines, starts = {}, {1}
+	for i = 1, #src do
+		if src:sub(i, i) == "\n" then
+			lines[#lines + 1] = src:sub(starts[#starts], i - 1)
+			starts[#starts + 1] = i + 1
+		end
+	end
+	lines[#lines + 1] = src:sub(starts[#starts])
+
+	local err_line = #starts
+	for i = 1, #starts - 1 do
+		if starts[i + 1] > pos then err_line = i; break end
+	end
+	local col = pos - starts[err_line] + 1
+
+	local out = {}
+	for l = math.max(1, err_line - 1), math.min(#lines, err_line + 1) do
+		out[#out + 1] = string.format("%4d | %s", l, lines[l])
+		if l == err_line then
+			out[#out + 1] = "     | " .. lines[l]:sub(1, col - 1):gsub("[^\t]", " ") .. "^"
+		end
+	end
+	return string.format("line %d col %d\n%s", err_line, col, table.concat(out, "\n"))
+end
+
 ---@class ffix.c.Tokenizer
 ---@field private ptr number
 ---@field private len number
@@ -142,22 +168,14 @@ function Tokenizer:tokenize(src)
 		while self:skipWhitespace() or self:skipComments() do end
 		if self.ptr > self.len then break end
 
+		local start = self.ptr
 		local tok = self:next()
 		if not tok then
 			local ch = string.sub(self.src, self.ptr, self.ptr)
-			local line, col = 1, 1
-			for i = 1, self.ptr - 1 do
-				if self.src:sub(i, i) == "\n" then line, col = line + 1, 1
-				else col = col + 1 end
-			end
-			local ls = self.ptr
-			while ls > 1 and self.src:sub(ls - 1, ls - 1) ~= "\n" do ls = ls - 1 end
-			local le = (self.src:find("\n", self.ptr) or self.len + 1) - 1
-			local snippet = self.src:sub(ls, le)
-			error(string.format("ffix: unexpected '%s' at line %d col %d\n  %s\n  %s^",
-				ch, line, col, snippet, string.rep(" ", col - 1)))
+			error("ffix: unexpected character '" .. ch .. "'\n" .. errorContext(self.src, self.ptr))
 		end
 
+		tok.span = {start, self.ptr - 1}
 		tokens[#tokens + 1] = tok
 	end
 

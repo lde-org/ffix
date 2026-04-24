@@ -1,6 +1,33 @@
+local function errorContext(src, pos)
+	local lines, starts = {}, {1}
+	for i = 1, #src do
+		if src:sub(i, i) == "\n" then
+			lines[#lines + 1] = src:sub(starts[#starts], i - 1)
+			starts[#starts + 1] = i + 1
+		end
+	end
+	lines[#lines + 1] = src:sub(starts[#starts])
+
+	local err_line = #starts
+	for i = 1, #starts - 1 do
+		if starts[i + 1] > pos then err_line = i; break end
+	end
+	local col = pos - starts[err_line] + 1
+
+	local out = {}
+	for l = math.max(1, err_line - 1), math.min(#lines, err_line + 1) do
+		out[#out + 1] = string.format("%4d | %s", l, lines[l])
+		if l == err_line then
+			out[#out + 1] = "     | " .. lines[l]:sub(1, col - 1):gsub("[^\t]", " ") .. "^"
+		end
+	end
+	return string.format("line %d col %d\n%s", err_line, col, table.concat(out, "\n"))
+end
+
 ---@class ffix.c.Parser
 ---@field private ptr number
 ---@field private tokens ffix.c.Tokenizer.Token[]
+---@field private src string?
 local Parser = {}
 Parser.__index = Parser
 
@@ -110,7 +137,11 @@ function Parser:expect(variant)
 	local tok = self:consume(variant)
 	if not tok then
 		local got = self.tokens[self.ptr]
-		error("expected '" .. variant .. "' got '" .. (got and got.variant or "EOF") .. "'")
+		local msg = "expected '" .. variant .. "' got '" .. (got and got.variant or "EOF") .. "'"
+		if self.src and got and got.span then
+			msg = msg .. "\n" .. errorContext(self.src, got.span[1])
+		end
+		error(msg)
 	end
 	return tok
 end
@@ -178,7 +209,7 @@ function Parser:parseType()
 			-- then this ident is a name not a type, so stop here without consuming
 			local next = self.tokens[self.ptr + 1]
 			local next_v = next and next.variant
-			if #quals > 0 and (next_v == "(" or next_v == ";" or next_v == "," or next_v == ")") then
+			if #quals > 0 and (next_v == "(" or next_v == ";" or next_v == "," or next_v == ")" or next_v == "[") then
 				break
 			end
 
@@ -507,10 +538,12 @@ function Parser:parseDecl()
 end
 
 ---@param tokens ffix.c.Tokenizer.Token[]
+---@param src string?
 ---@return boolean, ffix.c.Parser.Node[]
-function Parser:parse(tokens)
+function Parser:parse(tokens, src)
 	self.ptr = 1
 	self.tokens = tokens
+	self.src = src
 
 	local nodes = {}
 	local ok, err = pcall(function()
