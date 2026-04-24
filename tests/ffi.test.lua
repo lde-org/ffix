@@ -309,6 +309,61 @@ test.it("typedef union with anonymous struct member", function()
 	]])
 end)
 
+test.it("function with array-notation parameter", function()
+	local c = ctx()
+	c:cdef("int execv(const char* path, char* const argv[]);")
+end)
+
+test.it("extern array declaration", function()
+	local c = ctx()
+	c:cdef("extern char* environ[];")
+end)
+
+test.it("nested anonymous struct field with built-in type", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct {
+			char *name;
+			char *email;
+			struct {
+				int64_t time;
+				int offset;
+				char sign;
+			} when;
+		} git_signature;
+	]])
+	test.truthy(c:sizeof("git_signature") > 0)
+end)
+
+test.it("multiple forward typedefs in sequence", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct git_index     git_index;
+		typedef struct git_remote    git_remote;
+		typedef struct git_submodule git_submodule;
+	]])
+end)
+
+test.it("typedef struct with array field and pointer field", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct { unsigned char id[20]; } git_oid;
+		typedef struct { const char *message; int klass; } git_error;
+	]])
+	test.equal(c:sizeof("git_oid"), 20)
+end)
+
+test.it("typedef struct with padding array fields", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct { char _[376]; const char *checkout_branch; char _rest[32]; } git_clone_options;
+		typedef struct { char _[376]; } git_submodule_update_options;
+		typedef struct { unsigned int version; unsigned int checkout_strategy; char _rest[136]; } git_checkout_options;
+	]])
+	test.truthy(c:sizeof("git_clone_options") > 0)
+	test.equal(c:sizeof("git_submodule_update_options"), 376)
+end)
+
 test.it("typedef struct then function using it as pointer param", function()
 	local c = ctx()
 	c:cdef([[

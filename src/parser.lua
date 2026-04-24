@@ -313,6 +313,14 @@ function Parser:parseParams()
 		end
 		local ptype = self:parseType()
 		local name_tok = self:consume("ident")
+		-- array-notation params: char *argv[] → treat as pointer (consume and discard brackets)
+		if self:consume("[") then
+			while not self:consume("]") do self:advance() end
+			ptype = { qualifiers = ptype.qualifiers, name = ptype.name, inline_kind = ptype.inline_kind,
+				inline_tag = ptype.inline_tag, inline_fields = ptype.inline_fields,
+				inline_variants = ptype.inline_variants, inline_attrs = ptype.inline_attrs,
+				pointer = ptype.pointer + 1, reference = ptype.reference }
+		end
 		params[#params + 1] = { type = ptype, name = name_tok and name_tok.ident }
 		if self:consume(")") then break end
 		self:expect(",")
@@ -460,6 +468,9 @@ function Parser:parseDecl()
 	if self:consume("extern") then
 		local type = self:parseType()
 		local name = self:expect("ident")
+		if self:consume("[") then
+			while not self:consume("]") do self:advance() end
+		end
 		local asm_name = self:parseAsmName()
 		self:expect(";")
 		return {{ kind = "extern_var", type = type, name = name.ident, asm_name = asm_name }}
