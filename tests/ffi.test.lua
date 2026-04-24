@@ -427,3 +427,175 @@ test.it("typedef struct then function using it as pointer param", function()
 	]])
 	test.equal(c:sizeof("timespec"), ffi.sizeof("long") * 2)
 end)
+
+-- resolveTypename: built-in types
+
+test.it("sizeof builtin int passes through", function()
+	local c = ctx()
+	test.equal(c:sizeof("int"), ffi.sizeof("int"))
+end)
+
+test.it("sizeof builtin uint32_t passes through", function()
+	local c = ctx()
+	test.equal(c:sizeof("uint32_t"), ffi.sizeof("uint32_t"))
+end)
+
+test.it("sizeof builtin size_t passes through", function()
+	local c = ctx()
+	test.equal(c:sizeof("size_t"), ffi.sizeof("size_t"))
+end)
+
+test.it("sizeof builtin double passes through", function()
+	local c = ctx()
+	test.equal(c:sizeof("double"), ffi.sizeof("double"))
+end)
+
+test.it("typeof builtin int passes through", function()
+	local c = ctx()
+	local ct = c:typeof("int")
+	test.equal(ffi.sizeof(ct), ffi.sizeof("int"))
+end)
+
+-- resolveTypename: const modifier
+
+test.it("cast with const char pointer passes through", function()
+	local c = ctx()
+	local s = c:cast("const char *", "hello")
+	test.equal(ffi.string(s), "hello")
+end)
+
+test.it("cast with const user type pointer resolves correctly", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; int y; } Vec2;")
+	local v = c:new("Vec2", { x = 3, y = 4 })
+	local p = c:cast("const Vec2 *", v)
+	test.equal(p.x, 3)
+	test.equal(p.y, 4)
+end)
+
+test.it("cast with const builtin pointer writes through non-const alias", function()
+	local c = ctx()
+	local n = ffi.new("int[1]", 7)
+	local p = c:cast("const int *", n)
+	test.equal(p[0], 7)
+end)
+
+-- resolveTypename: struct/enum/union keyword prefix
+
+test.it("sizeof struct tag resolves to prefixed tag", function()
+	local c = ctx()
+	c:cdef("typedef struct Node { int val; struct Node *next; } Node;")
+	test.equal(c:sizeof("struct Node"), c:sizeof("Node"))
+end)
+
+test.it("cast struct tag pointer resolves to prefixed tag", function()
+	local c = ctx()
+	c:cdef("typedef struct { int a; int b; } Pair;")
+	local p = c:new("Pair", { a = 1, b = 2 })
+	local ptr = c:cast("Pair *", p)
+	test.equal(ptr.a, 1)
+	test.equal(ptr.b, 2)
+end)
+
+test.it("sizeof enum tag resolves to prefixed tag", function()
+	local c = ctx()
+	c:cdef("typedef enum Color { COLOR_RED = 0, COLOR_GREEN = 1 } Color;")
+	test.equal(c:sizeof("enum Color"), c:sizeof("Color"))
+end)
+
+test.it("typeof struct tag returns usable ctype", function()
+	local c = ctx()
+	c:cdef("typedef struct { float r; float g; float b; } RGB;")
+	local ct = c:typeof("RGB")
+	test.equal(ffi.sizeof(ct), ffi.sizeof("float") * 3)
+end)
+
+-- resolveTypename: pointer variants
+
+test.it("cast to void pointer resolves correctly", function()
+	local c = ctx()
+	c:cdef("typedef struct { int v; } Box;")
+	local b = c:new("Box", { v = 42 })
+	local vp = c:cast("void *", b)
+	local p = c:cast("Box *", vp)
+	test.equal(p.v, 42)
+end)
+
+test.it("new with builtin array type passes through", function()
+	local c = ctx()
+	local p = c:new("int[4]")
+	p[0] = 10
+	test.equal(p[0], 10)
+end)
+
+-- resolveTypename: error on unknown names
+
+test.it("sizeof unknown type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:sizeof("NoSuchType") end)
+	test.falsy(ok)
+	test.truthy(err:find("NoSuchType"))
+end)
+
+test.it("typeof unknown type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:typeof("Phantom") end)
+	test.falsy(ok)
+	test.truthy(err:find("Phantom"))
+end)
+
+test.it("cast unknown base type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:cast("Ghost *", nil) end)
+	test.falsy(ok)
+	test.truthy(err:find("Ghost"))
+end)
+
+test.it("cast unknown struct tag errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:cast("struct Nope *", nil) end)
+	test.falsy(ok)
+	test.truthy(err:find("Nope"))
+end)
+
+test.it("alignof unknown type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:alignof("Spooky") end)
+	test.falsy(ok)
+	test.truthy(err:find("Spooky"))
+end)
+
+test.it("offsetof unknown type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:offsetof("Blorp", "x") end)
+	test.falsy(ok)
+	test.truthy(err:find("Blorp"))
+end)
+
+test.it("unknown type does NOT silently fall through to ffi", function()
+	local c1 = ctx()
+	local c2 = ctx()
+	-- c1 registers the type, c2 never does
+	c1:cdef("typedef struct { int x; } Canary;")
+	local ok = pcall(function() c2:sizeof("Canary") end)
+	test.falsy(ok)  -- c2 must not resolve c1's prefixed name
+end)
+
+test.it("const unknown type errors", function()
+	local c = ctx()
+	local ok, err = pcall(function() c:cast("const Wraith *", nil) end)
+	test.falsy(ok)
+	test.truthy(err:find("Wraith"))
+end)
+
+-- resolveTypename: cross-context isolation
+
+test.it("type from one context errors in another context", function()
+	local c1 = ctx()
+	local c2 = ctx()
+	c1:cdef("typedef struct { int x; } Shared;")
+	-- c2 never registered Shared, so it must error
+	local ok, err = pcall(function() c2:sizeof("Shared") end)
+	test.falsy(ok)
+	test.truthy(err:find("Shared"))
+end)

@@ -151,37 +151,94 @@ function Context:cdef(code)
 	ffi.cdef(Printer.new():print(rewritten))
 end
 
+---@format disable-next
+local builtinTypes = {
+	["void"] = true,
+	["bool"] = true,
+	["char"] = true,
+	["short"] = true,
+	["int"] = true,
+	["long"] = true,
+	["float"] = true,
+	["double"] = true,
+	["unsigned"] = true,
+	["signed"] = true,
+	["int8_t"] = true, ["int16_t"] = true, ["int32_t"] = true, ["int64_t"] = true,
+	["uint8_t"] = true, ["uint16_t"] = true, ["uint32_t"] = true, ["uint64_t"] = true,
+	["size_t"] = true, ["ptrdiff_t"] = true, ["intptr_t"] = true, ["uintptr_t"] = true,
+}
+
+-- Resolves a typename string, handling const, struct/enum/union tags, built-ins,
+-- and trailing pointer/array decorators. Errors if the base name is unknown.
+---@param typename string
+---@return string
+function Context:resolveTypename(typename)
+	local s = typename
+
+	local prefix = ""
+	local const, rest = s:match("^(const%s+)(.*)")
+	if const then
+		prefix = const
+		s = rest
+	end
+
+	local kw, tag, tail = s:match("^(struct%s+)([%a_][%w_]*)(.*)")
+	if not kw then
+		kw, tag, tail = s:match("^(enum%s+)([%a_][%w_]*)(.*)")
+	end
+	if not kw then
+		kw, tag, tail = s:match("^(union%s+)([%a_][%w_]*)(.*)")
+	end
+
+	if kw then
+		local resolved = self.names[tag]
+		if not resolved then error("unknown typename: " .. kw .. tag) end
+		return prefix .. kw .. resolved .. tail
+	end
+
+	local base, tail2 = s:match("^([%a_][%w_]*)(.*)")
+	if base then
+		if builtinTypes[base] then
+			return prefix .. s
+		end
+		local resolved = self.names[base]
+		if not resolved then error("unknown typename: " .. base) end
+		return prefix .. resolved .. tail2
+	end
+
+	error("invalid typename: " .. typename)
+end
+
 ---@param typename string
 function Context:new(typename, ...)
-	return ffi.new(self.names[typename] or typename, ...)
+	return ffi.new(self:resolveTypename(typename), ...)
 end
 
 ---@param typename string
 function Context:cast(typename, ...)
-	local base, tail = typename:match("^([%a_][%w_]*)(.*)")
-	if base and self.names[base] then typename = self.names[base] .. tail end
-	return ffi.cast(typename, ...)
+	return ffi.cast(self:resolveTypename(typename), ...)
 end
 
 ---@param typename string
 function Context:typeof(typename)
-	return ffi.typeof(self.names[typename] or typename)
+	return ffi.typeof(self:resolveTypename(typename))
 end
 
 ---@param typename string
 function Context:sizeof(typename)
-	return ffi.sizeof(self.names[typename] or typename)
+	return ffi.sizeof(self:resolveTypename(typename))
 end
 
+--- TODO: field should be prefixed too...
 ---@param typename string
 ---@param field string
 function Context:offsetof(typename, field)
-	return ffi.offsetof(self.names[typename] or typename, field)
+	return ffi.offsetof(self:resolveTypename(typename), field)
 end
 
 ---@param typename string
 function Context:alignof(typename)
-	return ffi.alignof(self.names[typename] or typename)
+	return ffi.alignof(self:resolveTypename(typename))
 end
 
 ---@param lib string
@@ -192,12 +249,12 @@ end
 ---@param typename string
 ---@param mt table
 function Context:metatype(typename, mt)
-	return ffi.metatype(self.names[typename] or typename, mt)
+	return ffi.metatype(self:resolveTypename(typename), mt)
 end
 
 ---@param typename string
 function Context:istype(typename, obj)
-	return ffi.istype(self.names[typename] or typename, obj)
+	return ffi.istype(self:resolveTypename(typename), obj)
 end
 
 ---@param ctx table
