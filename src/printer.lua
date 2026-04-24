@@ -14,7 +14,9 @@ function Printer:inlineType(t)
 	local attr_str = (t.inline_attrs and #t.inline_attrs > 0) and (" " .. self:attrsStr(t.inline_attrs)) or ""
 	if kw == "enum" then
 		local parts = {}
-		for _, v in ipairs(t.inline_variants) do parts[#parts + 1] = v.name end
+		for _, v in ipairs(t.inline_variants) do
+			parts[#parts + 1] = v.value ~= nil and (v.name .. " = " .. v.value) or v.name
+		end
 		return "enum" .. tag_part .. " { " .. table.concat(parts, ", ") .. " }"
 	else
 		local parts = {}
@@ -111,7 +113,8 @@ function Printer:node(node)
 	elseif k == "typedef_enum" then
 		local lines = { "typedef enum" .. (node.tag and (" " .. node.tag) or "") .. " {" }
 		for _, v in ipairs(node.variants) do
-			lines[#lines + 1] = "\t" .. v.name .. ","
+			local entry = v.value ~= nil and (v.name .. " = " .. v.value) or v.name
+			lines[#lines + 1] = "\t" .. entry .. ","
 		end
 		lines[#lines + 1] = "} " .. node.name .. ";"
 		return table.concat(lines, "\n")

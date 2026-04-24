@@ -98,7 +98,7 @@ end
 local special = {}
 
 for _, s in ipairs({
-	"typedef", "{", "}", "[", "]", "(", ")", ",", ".", ";", ":", "<", ">", "*", "&", "~", "...", "::",
+	"typedef", "{", "}", "[", "]", "(", ")", ",", ".", ";", ":", "<", ">", "*", "&", "~", "=", "...", "::",
 	"struct", "enum", "union", "const", "restrict", "extern", "static", "volatile",
 	"unsigned", "signed", "void", "char", "short", "int", "long", "float", "double"
 }) do

@@ -320,8 +320,13 @@ function Parser:parseVariants()
 	local variants = {}
 	while not self:consume("}") do
 		local name = self:expect("ident")
+		local value
+		if self:consume("=") then
+			local tok = self:advance()
+			value = tok.variant == "number" and tok.number or tok.variant
+		end
 		self:consume(",")
-		variants[#variants + 1] = { name = name.ident }
+		variants[#variants + 1] = { name = name.ident, value = value }
 	end
 	return variants
 end

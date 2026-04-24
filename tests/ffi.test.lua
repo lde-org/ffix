@@ -382,6 +382,19 @@ test.it("typedef struct with padding array fields", function()
 	test.equal(c:sizeof("git_submodule_update_options"), 376)
 end)
 
+test.it("enum with explicit integer values", function()
+	local c = ctx()
+	c:cdef([[
+		typedef enum {
+			RESULT_SUCCESS = 0,
+			RESULT_BAD_DATA = 1,
+			RESULT_NOMEM = 2
+		} result_t;
+	]])
+	local v = c:new("result_t")
+	test.equal(tonumber(v), 0)
+end)
+
 test.it("function pointer parameter", function()
 	local c = ctx()
 	c:cdef([[
