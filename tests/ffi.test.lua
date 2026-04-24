@@ -245,3 +245,75 @@ test.it("no-prefix context: istype returns true for matching ctype", function()
 	local v = c:new("AutoVec")
 	test.truthy(c:istype("AutoVec", v))
 end)
+
+-- real-world cdef patterns
+
+test.it("mixed unnamed and named params", function()
+	local c = ctx()
+	c:cdef("void whatever(char* name, char*, int f);")
+end)
+
+test.it("win32-style multi-typedef with function", function()
+	local c = ctx()
+	c:cdef([[
+		typedef void* HANDLE;
+		typedef unsigned long DWORD;
+		typedef struct {
+			DWORD nLength;
+			void* lpSecurityDescriptor;
+			int bInheritHandle;
+		} SECURITY_ATTRIBUTES;
+		int CreateProcessA(const char*, char*, void*, void*, int, DWORD, void*, const char*, void*, void*);
+	]])
+end)
+
+test.it("simple void pointer function", function()
+	local c = ctx()
+	c:cdef("void *dlopen(const char *filename, int flags);")
+end)
+
+test.it("variadic function with named params", function()
+	local c = ctx()
+	c:cdef("int open(const char* path, int flags, ...);")
+end)
+
+test.it("bare struct definition followed by function using it", function()
+	local c = ctx()
+	c:cdef([[
+		struct pollfd { int fd; short events; short revents; };
+		int poll(struct pollfd* fds, unsigned long nfds, int timeout);
+	]])
+end)
+
+test.it("forward typedef then bare struct definition", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct Foo Foo;
+		struct Foo { int x; };
+	]])
+end)
+
+test.it("typedef struct with multiple declarators", function()
+	local c = ctx()
+	c:cdef("typedef struct Foo { int x; } Foo, *FooPtr;")
+end)
+
+test.it("typedef union with anonymous struct member", function()
+	local c = ctx()
+	c:cdef([[
+		typedef union {
+			struct { unsigned int lo, hi; };
+			unsigned long long val;
+		} LARGE_INTEGER;
+		int QueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount);
+	]])
+end)
+
+test.it("typedef struct then function using it as pointer param", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct { long tv_sec; long tv_nsec; } timespec;
+		int clock_gettime(int clk_id, timespec *tp);
+	]])
+	test.equal(c:sizeof("timespec"), ffi.sizeof("long") * 2)
+end)
