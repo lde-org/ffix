@@ -31,6 +31,10 @@ end
 ---@param name string?
 ---@return string
 function Printer:typedName(t, name)
+	if t.fnptr then
+		local inner = "(*" .. (name or "") .. ")"
+		return self:typedName(t.ret, inner) .. "(" .. self:paramList(t.params) .. ")"
+	end
 	local base
 	if t.inline_kind then
 		base = self:inlineType(t)

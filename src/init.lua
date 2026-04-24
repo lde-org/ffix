@@ -45,6 +45,9 @@ end
 ---@param t ffix.c.Parser.Type
 ---@return ffix.c.Parser.Type
 function Context:rewriteType(t)
+	if t.fnptr then
+		return { fnptr = true, ret = self:rewriteType(t.ret), params = self:rewriteParams(t.params), pointer = t.pointer }
+	end
 	if t.inline_kind then
 		return self:rewriteInlineType(t)
 	end

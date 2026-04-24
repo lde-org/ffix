@@ -382,6 +382,15 @@ test.it("typedef struct with padding array fields", function()
 	test.equal(c:sizeof("git_submodule_update_options"), 376)
 end)
 
+test.it("function pointer parameter", function()
+	local c = ctx()
+	c:cdef([[
+		typedef struct git_submodule git_submodule;
+		typedef struct git_repository git_repository;
+		int git_submodule_foreach(git_repository *repo, int (*cb)(git_submodule *sm, const char *name, void *payload), void *payload);
+	]])
+end)
+
 test.it("typedef struct then function using it as pointer param", function()
 	local c = ctx()
 	c:cdef([[

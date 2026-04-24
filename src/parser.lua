@@ -343,14 +343,26 @@ function Parser:parseParams()
 			break
 		end
 		local ptype = self:parseType()
-		local name_tok = self:consume("ident")
-		-- array-notation params: char *argv[] → treat as pointer (consume and discard brackets)
-		if self:consume("[") then
-			while not self:consume("]") do self:advance() end
-			ptype = { qualifiers = ptype.qualifiers, name = ptype.name, inline_kind = ptype.inline_kind,
-				inline_tag = ptype.inline_tag, inline_fields = ptype.inline_fields,
-				inline_variants = ptype.inline_variants, inline_attrs = ptype.inline_attrs,
-				pointer = ptype.pointer + 1, reference = ptype.reference }
+		local name_tok
+		-- function pointer param: ret (*name)(inner_params)
+		if self:peek() and self:peek().variant == "("
+			and self.tokens[self.ptr + 1] and self.tokens[self.ptr + 1].variant == "*" then
+			self:advance() -- (
+			self:advance() -- *
+			name_tok = self:consume("ident")
+			self:expect(")")
+			local fnparams = self:parseParams()
+			ptype = { fnptr = true, ret = ptype, params = fnparams, pointer = 0 }
+		else
+			name_tok = self:consume("ident")
+			-- array-notation params: char *argv[] → treat as pointer (consume and discard brackets)
+			if self:consume("[") then
+				while not self:consume("]") do self:advance() end
+				ptype = { qualifiers = ptype.qualifiers, name = ptype.name, inline_kind = ptype.inline_kind,
+					inline_tag = ptype.inline_tag, inline_fields = ptype.inline_fields,
+					inline_variants = ptype.inline_variants, inline_attrs = ptype.inline_attrs,
+					pointer = ptype.pointer + 1, reference = ptype.reference }
+			end
 		end
 		params[#params + 1] = { type = ptype, name = name_tok and name_tok.ident }
 		if self:consume(")") then break end
