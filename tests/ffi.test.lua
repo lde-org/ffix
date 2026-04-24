@@ -166,3 +166,82 @@ test.it("istype returns false for non-matching ctype", function()
 	local a = c:new("A")
 	test.falsy(c:istype("B", a))
 end)
+
+-- ffix.context() with no prefix (auto-generated)
+
+test.it("no-prefix context gets a non-empty pfx", function()
+	local c = ffix.context()
+	test.truthy(type(c.pfx) == "string" and #c.pfx > 0)
+end)
+
+test.it("no-prefix context: sizeof resolves struct", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int x; int y; } AutoPoint;")
+	test.equal(c:sizeof("AutoPoint"), ffi.sizeof("int") * 2)
+end)
+
+test.it("no-prefix context: new creates zero-initialised struct", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int a; int b; } AutoPair;")
+	local p = c:new("AutoPair")
+	test.equal(p.a, 0)
+	test.equal(p.b, 0)
+end)
+
+test.it("no-prefix context: new with initialiser sets fields", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int x; int y; } AutoCoord;")
+	local p = c:new("AutoCoord", { x = 5, y = 9 })
+	test.equal(p.x, 5)
+	test.equal(p.y, 9)
+end)
+
+test.it("no-prefix context: typeof returns usable ctype", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { float x; float y; } AutoVec2;")
+	local ct = c:typeof("AutoVec2")
+	test.equal(ffi.sizeof(ct), ffi.sizeof("float") * 2)
+end)
+
+test.it("no-prefix context: cast pointer write is visible through original", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int n; } AutoCell;")
+	local cell = c:new("AutoCell", { n = 7 })
+	local ptr = c:cast("AutoCell *", cell)
+	ptr.n = 88
+	test.equal(cell.n, 88)
+end)
+
+test.it("no-prefix context: C proxy resolves functions", function()
+	local c = ffix.context()
+	c:cdef("unsigned long strlen(const char * s);")
+	test.equal(tonumber(c.C.strlen("world")), 5)
+end)
+
+test.it("two no-prefix contexts do not collide", function()
+	local c1 = ffix.context()
+	local c2 = ffix.context()
+	c1:cdef("typedef struct { int v; } NpShared;")
+	c2:cdef("typedef struct { int v; int w; } NpShared;")
+	-- sizes differ, so the two contexts must have resolved to distinct prefixed names
+	test.truthy(c1:sizeof("NpShared") ~= c2:sizeof("NpShared"))
+end)
+
+test.it("no-prefix context: metatype registers methods", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int x; int y; } AutoPt;")
+	c:metatype("AutoPt", {
+		__index = {
+			sum = function(self) return self.x + self.y end,
+		},
+	})
+	local p = c:new("AutoPt", { x = 10, y = 20 })
+	test.equal(p:sum(), 30)
+end)
+
+test.it("no-prefix context: istype returns true for matching ctype", function()
+	local c = ffix.context()
+	c:cdef("typedef struct { int x; } AutoVec;")
+	local v = c:new("AutoVec")
+	test.truthy(c:istype("AutoVec", v))
+end)

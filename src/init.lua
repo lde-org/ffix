@@ -175,7 +175,7 @@ end
 
 ---@param ctx table
 local function generatePrefix(ctx)
-	return string.format("%d%p", os.clock() * 1e6, ctx)
+	return string.format("ffix_%d%p", os.clock() * 1e6, ctx)
 end
 
 ---@param pfx string?
