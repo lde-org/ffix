@@ -667,7 +667,7 @@ end)
 
 -- ctx:load — loaded library proxy
 
-test.it("loaded lib proxy resolves mangled function name", function()
+test.skipIf(ffi.os == "Windows")("loaded lib proxy resolves mangled function name", function()
 	local c = ctx()
 	c:cdef("double sqrt(double x);")
 	local lib = c:load("m")
