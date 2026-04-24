@@ -251,8 +251,10 @@ end
 function Context:load(lib)
 	local loaded = ffi.load(lib)
 	return setmetatable({}, {
-		__index = function(_, k)
-			return loaded[self.names[k] or k]
+		__index = function(t, k)
+			local v = loaded[self.names[k] or k]
+			rawset(t, k, v)
+			return v
 		end
 	})
 end
@@ -281,8 +283,10 @@ function ffix.context(pfx)
 	ctx.pfx = pfx or generatePrefix(ctx)
 
 	ctx.C = setmetatable({}, {
-		__index = function(_, k)
-			return ffi.C[ctx.names[k] or k]
+		__index = function(t, k)
+			local v = ffi.C[ctx.names[k] or k]
+			rawset(t, k, v)
+			return v
 		end
 	})
 
