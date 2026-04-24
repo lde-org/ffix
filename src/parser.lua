@@ -230,6 +230,24 @@ function Parser:parseType()
 	return { qualifiers = quals, name = name, pointer = pointer, reference = reference or nil }
 end
 
+---@return string?
+function Parser:parseArraySize()
+	if not self:consume("[") then return nil end
+	local parts = {}
+	while not self:consume("]") do
+		local t = self:advance()
+		if t.variant == "ident" then
+			parts[#parts + 1] = t.ident
+		elseif t.variant == "number" then
+			local n = t.number
+			parts[#parts + 1] = n == math.floor(n) and tostring(math.floor(n)) or tostring(n)
+		else
+			parts[#parts + 1] = t.variant
+		end
+	end
+	return table.concat(parts)
+end
+
 ---@return ffix.c.Parser.Field[]
 function Parser:parseFields()
 	local fields = {}
@@ -241,25 +259,27 @@ function Parser:parseFields()
 		else
 			name_tok = self:expect("ident")
 		end
-		local array_size
-		if self:consume("[") then
-			local parts = {}
-			while not self:consume("]") do
-				local t = self:advance()
-				if t.variant == "ident" then
-					parts[#parts + 1] = t.ident
-				elseif t.variant == "number" then
-					local n = t.number
-					parts[#parts + 1] = n == math.floor(n) and tostring(math.floor(n)) or tostring(n)
-				else
-					parts[#parts + 1] = t.variant
-				end
-			end
-			array_size = table.concat(parts)
-		end
+		local array_size = self:parseArraySize()
 		local attrs = self:parseAttrs()
-		self:expect(";")
 		fields[#fields + 1] = { type = ftype, name = name_tok and name_tok.ident, array_size = array_size, attrs = attrs }
+		-- comma-separated names sharing the same base type: unsigned int lo, hi;
+		while self:consume(",") do
+			local extra_ptr = 0
+			while self:consume("*") do extra_ptr = extra_ptr + 1 end
+			local extra_name = self:expect("ident")
+			local extra_type
+			if ftype.inline_kind then
+				extra_type = { qualifiers = ftype.qualifiers, inline_kind = ftype.inline_kind,
+					inline_tag = ftype.inline_tag, inline_fields = ftype.inline_fields,
+					inline_variants = ftype.inline_variants, inline_attrs = ftype.inline_attrs,
+					pointer = ftype.pointer + extra_ptr, reference = ftype.reference }
+			else
+				extra_type = { qualifiers = ftype.qualifiers, name = ftype.name,
+					pointer = ftype.pointer + extra_ptr, reference = ftype.reference }
+			end
+			fields[#fields + 1] = { type = extra_type, name = extra_name.ident, array_size = self:parseArraySize() }
+		end
+		self:expect(";")
 	end
 	return fields
 end
@@ -362,27 +382,52 @@ function Parser:parseAttrs()
 	return attrs
 end
 
----@return ffix.c.Parser.Node
+---@return ffix.c.Parser.Node[]
 function Parser:parseDecl()
 	if self:consume("typedef") then
 		local kw = self:peek()
 
 		if kw and (kw.variant == "struct" or kw.variant == "union") then
+			local kw_str = kw.variant
 			self:advance()
 			local pre_attrs = self:parseAttrs()
 			local tag_tok = self:consume("ident")
+
+			-- forward typedef: typedef struct Foo Foo; (no body follows)
+			if not (self:peek() and self:peek().variant == "{") then
+				if not tag_tok then error("expected tag or '{' after " .. kw_str) end
+				local name = self:expect("ident")
+				self:expect(";")
+				return {{ kind = "typedef_alias",
+					type = { qualifiers = {}, name = kw_str .. " " .. tag_tok.ident, pointer = 0 },
+					name = name.ident }}
+			end
+
 			self:expect("{")
 			local fields = self:parseFields()
 			local post_attrs = self:parseAttrs()
-			local name = self:expect("ident")
-			self:expect(";")
 			local attrs
 			if pre_attrs or post_attrs then
 				attrs = {}
 				if pre_attrs then for _, a in ipairs(pre_attrs) do attrs[#attrs + 1] = a end end
 				if post_attrs then for _, a in ipairs(post_attrs) do attrs[#attrs + 1] = a end end
 			end
-			return { kind = "typedef_struct", tag = tag_tok and tag_tok.ident, fields = fields, name = name.ident, attrs = attrs }
+
+			local first_name = self:expect("ident")
+			local result = {{ kind = "typedef_struct", kw = kw_str,
+				tag = tag_tok and tag_tok.ident, fields = fields,
+				name = first_name.ident, attrs = attrs }}
+			-- additional declarators: typedef struct { } Foo, *FooPtr;
+			while self:consume(",") do
+				local ptr = 0
+				while self:consume("*") do ptr = ptr + 1 end
+				local alias_name = self:expect("ident")
+				result[#result + 1] = { kind = "typedef_alias",
+					type = { qualifiers = {}, name = first_name.ident, pointer = ptr },
+					name = alias_name.ident }
+			end
+			self:expect(";")
+			return result
 		end
 
 		if kw and kw.variant == "enum" then
@@ -392,7 +437,7 @@ function Parser:parseDecl()
 			local variants = self:parseVariants()
 			local name = self:expect("ident")
 			self:expect(";")
-			return { kind = "typedef_enum", tag = tag_tok and tag_tok.ident, variants = variants, name = name.ident }
+			return {{ kind = "typedef_enum", tag = tag_tok and tag_tok.ident, variants = variants, name = name.ident }}
 		end
 
 		local ret = self:parseType()
@@ -404,12 +449,12 @@ function Parser:parseDecl()
 			self:expect(")")
 			local params = self:parseParams()
 			self:expect(";")
-			return { kind = "typedef_fnptr", ret = ret, name = name.ident, params = params }
+			return {{ kind = "typedef_fnptr", ret = ret, name = name.ident, params = params }}
 		end
 
 		local name = self:expect("ident")
 		self:expect(";")
-		return { kind = "typedef_alias", type = ret, name = name.ident }
+		return {{ kind = "typedef_alias", type = ret, name = name.ident }}
 	end
 
 	if self:consume("extern") then
@@ -417,7 +462,28 @@ function Parser:parseDecl()
 		local name = self:expect("ident")
 		local asm_name = self:parseAsmName()
 		self:expect(";")
-		return { kind = "extern_var", type = type, name = name.ident, asm_name = asm_name }
+		return {{ kind = "extern_var", type = type, name = name.ident, asm_name = asm_name }}
+	end
+
+	-- bare struct/union/enum definition: struct Foo { ... };
+	local kw_tok = self:peek()
+	if kw_tok and (kw_tok.variant == "struct" or kw_tok.variant == "union" or kw_tok.variant == "enum") then
+		local saved = self.ptr
+		self:advance()
+		local tag_tok = self:consume("ident")
+		if self:peek() and self:peek().variant == "{" then
+			self:advance()
+			local fields, variants
+			if kw_tok.variant == "enum" then
+				variants = self:parseVariants()
+			else
+				fields = self:parseFields()
+			end
+			self:expect(";")
+			return {{ kind = "struct_def", kw = kw_tok.variant,
+				tag = tag_tok and tag_tok.ident, fields = fields, variants = variants }}
+		end
+		self.ptr = saved
 	end
 
 	local ret = self:parseType()
@@ -426,8 +492,7 @@ function Parser:parseDecl()
 	local asm_name = self:parseAsmName()
 	local attrs = self:parseAttrs()
 	self:expect(";")
-
-	return { kind = "fn_decl", ret = ret, name = name.ident, params = params, asm_name = asm_name, attrs = attrs }
+	return {{ kind = "fn_decl", ret = ret, name = name.ident, params = params, asm_name = asm_name, attrs = attrs }}
 end
 
 ---@param tokens ffix.c.Tokenizer.Token[]
@@ -439,7 +504,9 @@ function Parser:parse(tokens)
 	local nodes = {}
 	local ok, err = pcall(function()
 		while self.ptr <= #self.tokens do
-			nodes[#nodes + 1] = self:parseDecl()
+			for _, node in ipairs(self:parseDecl()) do
+				nodes[#nodes + 1] = node
+			end
 		end
 	end)
 

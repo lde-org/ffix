@@ -77,14 +77,31 @@ function Printer:node(node)
 		return "typedef " .. self:typedName(node.type, node.name) .. ";"
 
 	elseif k == "typedef_struct" then
+		local kw_str = node.kw or "struct"
 		local attr_str = (node.attrs and #node.attrs > 0) and (" " .. self:attrsStr(node.attrs)) or ""
-		local lines = { "typedef struct" .. (node.tag and (" " .. node.tag) or "") .. attr_str .. " {" }
+		local lines = { "typedef " .. kw_str .. (node.tag and (" " .. node.tag) or "") .. attr_str .. " {" }
 		for _, f in ipairs(node.fields) do
 			local arr = f.array_size and ("[" .. f.array_size .. "]") or ""
 			local fattr = (f.attrs and #f.attrs > 0) and (" " .. self:attrsStr(f.attrs)) or ""
 			lines[#lines + 1] = "\t" .. self:typedName(f.type, f.name) .. arr .. fattr .. ";"
 		end
 		lines[#lines + 1] = "} " .. node.name .. ";"
+		return table.concat(lines, "\n")
+
+	elseif k == "struct_def" then
+		local lines = { node.kw .. (node.tag and (" " .. node.tag) or "") .. " {" }
+		if node.fields then
+			for _, f in ipairs(node.fields) do
+				local arr = f.array_size and ("[" .. f.array_size .. "]") or ""
+				local fattr = (f.attrs and #f.attrs > 0) and (" " .. self:attrsStr(f.attrs)) or ""
+				lines[#lines + 1] = "\t" .. self:typedName(f.type, f.name) .. arr .. fattr .. ";"
+			end
+		else
+			for _, v in ipairs(node.variants) do
+				lines[#lines + 1] = "\t" .. v.name .. ","
+			end
+		end
+		lines[#lines + 1] = "};"
 		return table.concat(lines, "\n")
 
 	elseif k == "typedef_enum" then

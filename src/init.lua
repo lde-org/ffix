@@ -97,6 +97,17 @@ function Context:rewriteNode(node)
 		return { kind = k, name = renamed, asm_name = node.asm_name or node.name, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params), attrs = node.attrs }
 	elseif k == "extern_var" then
 		return { kind = k, name = renamed, asm_name = node.name, type = self:rewriteType(node.type) }
+	elseif k == "struct_def" then
+		local fields
+		if node.fields then
+			fields = {}
+			for _, f in ipairs(node.fields) do
+				fields[#fields + 1] = { type = self:rewriteType(f.type), name = f.name, array_size = f.array_size, attrs = f.attrs }
+			end
+		end
+
+		local renamed_tag = node.tag and (self.names[node.tag] or node.tag)
+		return { kind = k, kw = node.kw, tag = renamed_tag, fields = fields, variants = node.variants }
 	end
 
 	error("unknown node kind: " .. tostring(node.kind))
@@ -108,10 +119,13 @@ function Context:cdef(code)
 	local ok, nodes, err = Parser.new():parse(tokens)
 	if not ok then error("ffix: " .. tostring(err)) end
 
-	-- first pass: register all declared names
+	-- first pass: register all declared names and tags
 	for _, node in ipairs(nodes) do
 		if node.name then
 			self.names[node.name] = self.pfx .. "_" .. node.name
+		end
+		if node.tag and not self.names[node.tag] then
+			self.names[node.tag] = self.pfx .. "_" .. node.tag
 		end
 	end
 
