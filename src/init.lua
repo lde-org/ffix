@@ -209,35 +209,41 @@ function Context:resolveTypename(typename)
 	error("invalid typename: " .. typename)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:new(typename, ...)
+	if type(typename) ~= "string" then return ffi.new(typename, ...) end
 	return ffi.new(self:resolveTypename(typename), ...)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:cast(typename, ...)
+	if type(typename) ~= "string" then return ffi.cast(typename, ...) end
 	return ffi.cast(self:resolveTypename(typename), ...)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:typeof(typename)
+	if type(typename) ~= "string" then return ffi.typeof(typename) end
 	return ffi.typeof(self:resolveTypename(typename))
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:sizeof(typename)
+	if type(typename) ~= "string" then return ffi.sizeof(typename) end
 	return ffi.sizeof(self:resolveTypename(typename))
 end
 
 --- TODO: field should be prefixed too...
----@param typename string
+---@param typename string|ffi.ctype*
 ---@param field string
 function Context:offsetof(typename, field)
+	if type(typename) ~= "string" then return ffi.offsetof(typename, field) end
 	return ffi.offsetof(self:resolveTypename(typename), field)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:alignof(typename)
+	if type(typename) ~= "string" then return ffi.alignof(typename) end
 	return ffi.alignof(self:resolveTypename(typename))
 end
 
@@ -246,14 +252,16 @@ function Context:load(lib)
 	return ffi.load(lib)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 ---@param mt table
 function Context:metatype(typename, mt)
+	if type(typename) ~= "string" then return ffi.metatype(typename, mt) end
 	return ffi.metatype(self:resolveTypename(typename), mt)
 end
 
----@param typename string
+---@param typename string|ffi.ctype*
 function Context:istype(typename, obj)
+	if type(typename) ~= "string" then return ffi.istype(typename, obj) end
 	return ffi.istype(self:resolveTypename(typename), obj)
 end
 

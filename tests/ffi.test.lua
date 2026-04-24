@@ -588,6 +588,74 @@ test.it("const unknown type errors", function()
 	test.truthy(err:find("Wraith"))
 end)
 
+-- ctype passthrough: all ctx methods accept a ctype object directly
+
+test.it("new with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; int y; } Pt;")
+	local ct = c:typeof("Pt")
+	local p = c:new(ct, { x = 1, y = 2 })
+	test.equal(p.x, 1)
+	test.equal(p.y, 2)
+end)
+
+test.it("sizeof with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; int y; } Sz;")
+	local ct = c:typeof("Sz")
+	test.equal(c:sizeof(ct), ffi.sizeof("int") * 2)
+end)
+
+test.it("cast with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int n; } Castable;")
+	local ct = c:typeof("Castable")
+	local v = c:new("Castable", { n = 7 })
+	local p = c:cast(ffi.typeof("$ *", ct), v)
+	test.equal(p.n, 7)
+end)
+
+test.it("typeof with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { float v; } Flt;")
+	local ct = c:typeof("Flt")
+	local ct2 = c:typeof(ct)
+	test.equal(ffi.sizeof(ct2), ffi.sizeof("float"))
+end)
+
+test.it("alignof with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; } Aligned;")
+	local ct = c:typeof("Aligned")
+	test.equal(c:alignof(ct), ffi.alignof("int"))
+end)
+
+test.it("offsetof with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int a; int b; } Off;")
+	local ct = c:typeof("Off")
+	test.equal(c:offsetof(ct, "b"), ffi.sizeof("int"))
+end)
+
+test.it("istype with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; } Ity;")
+	local ct = c:typeof("Ity")
+	local v = c:new("Ity")
+	test.truthy(c:istype(ct, v))
+end)
+
+test.it("metatype with ctype passes through", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; } Meta2;")
+	local ct = c:typeof("Meta2")
+	c:metatype(ct, {
+		__index = { doubled = function(self) return self.x * 2 end },
+	})
+	local v = c:new("Meta2", { x = 5 })
+	test.equal(v:doubled(), 10)
+end)
+
 -- resolveTypename: cross-context isolation
 
 test.it("type from one context errors in another context", function()
