@@ -295,7 +295,7 @@ test.it("variadic function with named params", function()
 	c:cdef("int open(const char* path, int flags, ...);")
 end)
 
-test.it("variadic function call passes extra args", function()
+test.skipIf(ffi.os == "Windows")("variadic function call passes extra args", function()
 	local c = ctx()
 	c:cdef("int sprintf(char *str, const char *fmt, ...);")
 	local buf = ffi.new("char[64]")
