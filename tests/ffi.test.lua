@@ -656,6 +656,16 @@ test.it("metatype with ctype passes through", function()
 	test.equal(v:doubled(), 10)
 end)
 
+-- ctx:load — loaded library proxy
+
+test.it("loaded lib proxy resolves mangled function name", function()
+	local c = ctx()
+	c:cdef("double sqrt(double x);")
+	local lib = c:load("m")
+	-- analogous to c.C.strlen: lib.sqrt should resolve via the mangled name
+	test.equal(lib.sqrt(4.0), 2.0)
+end)
+
 -- resolveTypename: cross-context isolation
 
 test.it("type from one context errors in another context", function()

@@ -249,7 +249,12 @@ end
 
 ---@param lib string
 function Context:load(lib)
-	return ffi.load(lib)
+	local loaded = ffi.load(lib)
+	return setmetatable({}, {
+		__index = function(_, k)
+			return loaded[self.names[k] or k]
+		end
+	})
 end
 
 ---@param typename string|ffi.ctype*
