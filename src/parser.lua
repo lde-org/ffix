@@ -58,6 +58,7 @@ Parser.__index = Parser
 ---@class ffix.c.Parser.Param
 ---@field type ffix.c.Parser.Type
 ---@field name string?
+---@field vararg boolean?
 
 ---@class ffix.c.Parser.Node.TypedefAlias
 ---@field kind "typedef_alias"
@@ -344,6 +345,7 @@ function Parser:parseParams()
 	end
 	while true do
 		if self:consume("...") then
+			params[#params + 1] = { vararg = true }
 			self:consume(")")
 			break
 		end

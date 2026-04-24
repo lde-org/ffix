@@ -295,6 +295,15 @@ test.it("variadic function with named params", function()
 	c:cdef("int open(const char* path, int flags, ...);")
 end)
 
+test.it("variadic function call passes extra args", function()
+	local c = ctx()
+	c:cdef("int sprintf(char *str, const char *fmt, ...);")
+	local buf = ffi.new("char[64]")
+	local n = c.C.sprintf(buf, "%d + %d = %d", ffi.cast("int", 1), ffi.cast("int", 2), ffi.cast("int", 3))
+	test.equal(ffi.string(buf), "1 + 2 = 3")
+	test.equal(tonumber(n), 9)
+end)
+
 test.it("bare struct definition followed by function using it", function()
 	local c = ctx()
 	c:cdef([[

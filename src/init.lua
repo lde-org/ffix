@@ -79,7 +79,11 @@ end
 function Context:rewriteParams(params)
 	local out = {}
 	for _, p in ipairs(params) do
-		out[#out + 1] = { type = self:rewriteType(p.type), name = p.name }
+		if p.vararg then
+			out[#out + 1] = p
+		else
+			out[#out + 1] = { type = self:rewriteType(p.type), name = p.name }
+		end
 	end
 
 	return out

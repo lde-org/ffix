@@ -59,7 +59,11 @@ function Printer:paramList(params)
 	if #params == 0 then return "void" end
 	local parts = {}
 	for _, p in ipairs(params) do
-		parts[#parts + 1] = self:typedName(p.type, p.name)
+		if p.vararg then
+			parts[#parts + 1] = "..."
+		else
+			parts[#parts + 1] = self:typedName(p.type, p.name)
+		end
 	end
 	return table.concat(parts, ", ")
 end
