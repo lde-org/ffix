@@ -222,6 +222,12 @@ end
 ---@param typename string|ffi.ctype*
 function Context:cast(typename, ...)
 	if type(typename) ~= "string" then return ffi.cast(typename, ...) end
+	if typename:find("%(") then
+		local resolved = typename:gsub("%f[%a_][%a_][%w_]*", function(ident)
+			return self.names[ident] or ident
+		end)
+		return ffi.cast(resolved, ...)
+	end
 	return ffi.cast(self:resolveTypename(typename), ...)
 end
 

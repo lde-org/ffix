@@ -675,6 +675,34 @@ test.skipIf(ffi.os == "Windows")("loaded lib proxy resolves mangled function nam
 	test.equal(lib.sqrt(4.0), 2.0)
 end)
 
+-- cast: function pointer signatures with user-defined types
+
+test.it("cast function pointer signature resolves user type names", function()
+	local c = ctx()
+	c:cdef("typedef struct { int x; } Submod;")
+	local result = nil
+	local cb = c:cast("int (*)(Submod*, const char*, void*)", function(sm, name, payload)
+		result = sm.x
+		return 0
+	end)
+	local sm = c:new("Submod", { x = 42 })
+	cb(sm, "test", nil)
+	test.equal(result, 42)
+end)
+
+test.it("cast function pointer with struct tag resolves correctly", function()
+	local c = ctx()
+	c:cdef("typedef struct Node { int val; struct Node *next; } Node;")
+	local result = nil
+	local cb = c:cast("int (*)(struct Node*, void*)", function(n, _)
+		result = n.val
+		return 0
+	end)
+	local node = c:new("Node", { val = 99 })
+	cb(node, nil)
+	test.equal(result, 99)
+end)
+
 -- resolveTypename: cross-context isolation
 
 test.it("type from one context errors in another context", function()
