@@ -232,8 +232,9 @@ function Context:cast(typename, ...)
 end
 
 ---@param typename string|ffi.ctype*
-function Context:typeof(typename)
-	if type(typename) ~= "string" then return ffi.typeof(typename) end
+function Context:typeof(typename, ...)
+	if type(typename) ~= "string" then return ffi.typeof(typename, ...) end
+	if typename:find("%$") then return ffi.typeof(typename, ...) end
 	return ffi.typeof(self:resolveTypename(typename))
 end
 
