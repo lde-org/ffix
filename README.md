@@ -8,6 +8,16 @@ This solves the issue of ffi redefinition fears that are all too common with a l
 
 ## Usage
 
+Set up [lde](https://lde.sh)
+
 ```
 lde add ffix --git https://github.com/lde-org/ffix
 ```
+
+## Development
+
+This library is used by `lde` itself to sandbox `ffi` so that its own declarations do not conflict with package declarations.
+
+However, this means that is there's any issues with ffix, they will remain in the binary and cause problems with development of ffix itself, since it would now be using the old version for `require("ffi")`
+
+This can be avoided via an escape hatch as so: `local ffi = getmetatable(package.loaded.ffi).__index` to get the original luajit ffi library without ffix detours.
