@@ -288,6 +288,14 @@ function Parser:parseFields()
 		local name_tok
 		if ftype.inline_kind then
 			name_tok = self:consume("ident")
+		elseif self:peek() and self:peek().variant == "("
+			and self.tokens[self.ptr + 1] and self.tokens[self.ptr + 1].variant == "*" then
+			self:advance() -- (
+			self:advance() -- *
+			name_tok = self:consume("ident")
+			self:expect(")")
+			local fnparams = self:parseParams()
+			ftype = { fnptr = true, ret = ftype, params = fnparams, pointer = 0 }
 		else
 			name_tok = self:expect("ident")
 		end

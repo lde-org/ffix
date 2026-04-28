@@ -438,6 +438,28 @@ test.it("anonymous struct inside union", function()
 	})
 end)
 
+test.it("function pointer field in struct", function()
+	test.match(parse("typedef struct { int (*cb)(const foo *, void *); } S;"), {
+		{
+			kind = "typedef_struct",
+			name = "S",
+			fields = {
+				{
+					name = "cb",
+					type = {
+						fnptr = true,
+						ret = { name = "int" },
+						params = {
+							{ type = { qualifiers = { "const" }, name = "foo", pointer = 1 } },
+							{ type = { name = "void", pointer = 1 } },
+						},
+					},
+				},
+			},
+		},
+	})
+end)
+
 test.it("nested anonymous unions", function()
 	test.match(parse("typedef struct { union { struct { int x; int y; }; int arr[2]; }; } S;"), {
 		{
