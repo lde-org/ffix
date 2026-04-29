@@ -481,3 +481,10 @@ test.it("returns false on invalid input", function()
 	local ok, nodes = Parser.new():parse(tokens)
 	test.falsy(ok)
 end)
+
+test.it("calling convention function pointer parses", function()
+	-- e.g. typedef LRESULT(__stdcall *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
+	local tokens = Tokenizer.new():tokenize("typedef int(__stdcall *CB)(void);")
+	local ok = Parser.new():parse(tokens)
+	test.truthy(ok)
+end)
