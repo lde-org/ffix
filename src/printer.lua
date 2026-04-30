@@ -34,8 +34,9 @@ end
 ---@return string
 function Printer:typedName(t, name)
 	if t.fnptr then
-		local inner = "(*" .. (name or "") .. ")"
-		return self:typedName(t.ret, inner) .. "(" .. self:paramList(t.params) .. ")"
+		local ccall = t.cconv and (t.cconv .. " *") or "*"
+		local prefix = t.cconv and self:typedName(t.ret, nil) or self:typedName(t.ret, "")
+		return prefix .. "(" .. ccall .. (name or "") .. ")(" .. self:paramList(t.params) .. ")"
 	end
 	local base
 	if t.inline_kind then
@@ -85,7 +86,6 @@ function Printer:node(node)
 
 	if k == "typedef_alias" then
 		return "typedef " .. self:typedName(node.type, node.name) .. ";"
-
 	elseif k == "typedef_struct" then
 		local kw_str = node.kw or "struct"
 		local attr_str = (node.attrs and #node.attrs > 0) and (" " .. self:attrsStr(node.attrs)) or ""
@@ -97,7 +97,6 @@ function Printer:node(node)
 		end
 		lines[#lines + 1] = "} " .. node.name .. ";"
 		return table.concat(lines, "\n")
-
 	elseif k == "struct_def" then
 		if not node.fields and not node.variants then
 			return node.kw .. (node.tag and (" " .. node.tag) or "") .. ";"
@@ -116,7 +115,6 @@ function Printer:node(node)
 		end
 		lines[#lines + 1] = "};"
 		return table.concat(lines, "\n")
-
 	elseif k == "typedef_enum" then
 		local lines = { "typedef enum" .. (node.tag and (" " .. node.tag) or "") .. " {" }
 		for _, v in ipairs(node.variants) do
@@ -125,17 +123,17 @@ function Printer:node(node)
 		end
 		lines[#lines + 1] = "} " .. node.name .. ";"
 		return table.concat(lines, "\n")
-
 	elseif k == "typedef_fnptr" then
-		return "typedef " .. self:typedName(node.ret, "(*" .. node.name .. ")") .. "("
+		local ccall = node.cconv and (node.cconv .. " *") or "*"
+		local prefix = node.cconv and self:typedName(node.ret, nil) or self:typedName(node.ret, "")
+		return "typedef " .. prefix .. "(" .. ccall .. node.name .. ")("
 			.. self:paramList(node.params) .. ");"
-
 	elseif k == "fn_decl" then
-		local s = self:typedName(node.ret, node.name) .. "(" .. self:paramList(node.params) .. ")"
+		local name_part = node.cconv and (node.cconv .. " " .. node.name) or node.name
+		local s = self:typedName(node.ret, name_part) .. "(" .. self:paramList(node.params) .. ")"
 		if node.asm_name then s = s .. " __asm__(\"" .. node.asm_name .. "\")" end
 		if node.attrs and #node.attrs > 0 then s = s .. " " .. self:attrsStr(node.attrs) end
 		return s .. ";"
-
 	elseif k == "extern_var" then
 		local s = "extern " .. self:typedName(node.type, node.name)
 		if node.asm_name then s = s .. " __asm__(\"" .. node.asm_name .. "\")" end

@@ -1,5 +1,5 @@
 local function errorContext(src, pos)
-	local lines, starts = {}, {1}
+	local lines, starts = {}, { 1 }
 	for i = 1, #src do
 		if src:sub(i, i) == "\n" then
 			lines[#lines + 1] = src:sub(starts[#starts], i - 1)
@@ -10,7 +10,9 @@ local function errorContext(src, pos)
 
 	local err_line = #starts
 	for i = 1, #starts - 1 do
-		if starts[i + 1] > pos then err_line = i; break end
+		if starts[i + 1] > pos then
+			err_line = i; break
+		end
 	end
 	local col = pos - starts[err_line] + 1
 
@@ -100,7 +102,8 @@ local special = {}
 for _, s in ipairs({
 	"typedef", "{", "}", "[", "]", "(", ")", ",", ".", ";", ":", "<", ">", "*", "&", "~", "=", "...", "::",
 	"struct", "enum", "union", "const", "restrict", "extern", "static", "volatile",
-	"unsigned", "signed", "void", "char", "short", "int", "long", "float", "double"
+	"unsigned", "signed", "void", "char", "short", "int", "long", "float", "double",
+	"__cdecl", "__stdcall", "__fastcall", "__thiscall", "__vectorcall", "__pascal"
 }) do
 	special[s] = true
 end
@@ -175,7 +178,7 @@ function Tokenizer:tokenize(src)
 			error("ffix: unexpected character '" .. ch .. "'\n" .. errorContext(self.src, self.ptr))
 		end
 
-		tok.span = {start, self.ptr - 1}
+		tok.span = { start, self.ptr - 1 }
 		tokens[#tokens + 1] = tok
 	end
 

@@ -1,5 +1,5 @@
 local function errorContext(src, pos)
-	local lines, starts = {}, {1}
+	local lines, starts = {}, { 1 }
 	for i = 1, #src do
 		if src:sub(i, i) == "\n" then
 			lines[#lines + 1] = src:sub(starts[#starts], i - 1)
@@ -10,7 +10,9 @@ local function errorContext(src, pos)
 
 	local err_line = #starts
 	for i = 1, #starts - 1 do
-		if starts[i + 1] > pos then err_line = i; break end
+		if starts[i + 1] > pos then
+			err_line = i; break
+		end
 	end
 	local col = pos - starts[err_line] + 1
 
@@ -83,6 +85,7 @@ Parser.__index = Parser
 ---@field ret ffix.c.Parser.Type
 ---@field name string
 ---@field params ffix.c.Parser.Param[]
+---@field cconv string?
 
 ---@class ffix.c.Parser.Node.FnDecl
 ---@field kind "fn_decl"
@@ -91,6 +94,7 @@ Parser.__index = Parser
 ---@field params ffix.c.Parser.Param[]
 ---@field asm_name string?
 ---@field attrs ffix.c.Attr[]?
+---@field cconv string?
 
 ---@class ffix.c.Parser.Node.ExternVar
 ---@field kind "extern_var"
@@ -149,6 +153,17 @@ end
 
 local type_quals = { const = true, volatile = true, restrict = true, unsigned = true, signed = true, long = true, short = true }
 local base_types = { void = true, char = true, int = true, float = true, double = true }
+local cconv_variants = { __cdecl = true, __stdcall = true, __fastcall = true, __thiscall = true, __vectorcall = true, __pascal = true }
+
+---@return string?
+function Parser:consumeCallingConvention()
+	local tok = self:peek()
+	if tok and cconv_variants[tok.variant] then
+		self:advance()
+		return tok.variant
+	end
+	return nil
+end
 
 ---@return ffix.c.Parser.Type
 function Parser:parseType()
@@ -186,7 +201,9 @@ function Parser:parseType()
 						local qtok = self:peek()
 						if qtok and (qtok.variant == "const" or qtok.variant == "volatile" or qtok.variant == "restrict") then
 							self:advance()
-						else break end
+						else
+							break
+						end
 					end
 				end
 				local reference = self:consume("&") ~= nil
@@ -198,7 +215,7 @@ function Parser:parseType()
 					inline_variants = inline_variants,
 					inline_attrs = inline_attrs,
 					pointer = pointer,
-					reference = reference or nil,
+					reference = reference or nil
 				}
 			end
 			if not tag_tok then error("expected tag name or '{' after " .. kw) end
@@ -289,13 +306,14 @@ function Parser:parseFields()
 		if ftype.inline_kind then
 			name_tok = self:consume("ident")
 		elseif self:peek() and self:peek().variant == "("
-			and self.tokens[self.ptr + 1] and self.tokens[self.ptr + 1].variant == "*" then
+			and self.tokens[self.ptr + 1] and (self.tokens[self.ptr + 1].variant == "*" or cconv_variants[self.tokens[self.ptr + 1].variant]) then
 			self:advance() -- (
-			self:advance() -- *
+			local cconv = self:consumeCallingConvention()
+			self:expect("*")
 			name_tok = self:consume("ident")
 			self:expect(")")
 			local fnparams = self:parseParams()
-			ftype = { fnptr = true, ret = ftype, params = fnparams, pointer = 0 }
+			ftype = { fnptr = true, ret = ftype, params = fnparams, pointer = 0, cconv = cconv }
 		else
 			name_tok = self:expect("ident")
 		end
@@ -309,13 +327,23 @@ function Parser:parseFields()
 			local extra_name = self:expect("ident")
 			local extra_type
 			if ftype.inline_kind then
-				extra_type = { qualifiers = ftype.qualifiers, inline_kind = ftype.inline_kind,
-					inline_tag = ftype.inline_tag, inline_fields = ftype.inline_fields,
-					inline_variants = ftype.inline_variants, inline_attrs = ftype.inline_attrs,
-					pointer = ftype.pointer + extra_ptr, reference = ftype.reference }
+				extra_type = {
+					qualifiers = ftype.qualifiers,
+					inline_kind = ftype.inline_kind,
+					inline_tag = ftype.inline_tag,
+					inline_fields = ftype.inline_fields,
+					inline_variants = ftype.inline_variants,
+					inline_attrs = ftype.inline_attrs,
+					pointer = ftype.pointer + extra_ptr,
+					reference = ftype.reference
+				}
 			else
-				extra_type = { qualifiers = ftype.qualifiers, name = ftype.name,
-					pointer = ftype.pointer + extra_ptr, reference = ftype.reference }
+				extra_type = {
+					qualifiers = ftype.qualifiers,
+					name = ftype.name,
+					pointer = ftype.pointer + extra_ptr,
+					reference = ftype.reference
+				}
 			end
 			fields[#fields + 1] = { type = extra_type, name = extra_name.ident, array_size = self:parseArraySize() }
 		end
@@ -359,24 +387,32 @@ function Parser:parseParams()
 		end
 		local ptype = self:parseType()
 		local name_tok
-		-- function pointer param: ret (*name)(inner_params)
+		-- function pointer param: ret (__stdcall *name)(inner_params)
 		if self:peek() and self:peek().variant == "("
-			and self.tokens[self.ptr + 1] and self.tokens[self.ptr + 1].variant == "*" then
+			and self.tokens[self.ptr + 1] and (self.tokens[self.ptr + 1].variant == "*" or cconv_variants[self.tokens[self.ptr + 1].variant]) then
 			self:advance() -- (
-			self:advance() -- *
+			local cconv = self:consumeCallingConvention()
+			self:expect("*")
 			name_tok = self:consume("ident")
 			self:expect(")")
 			local fnparams = self:parseParams()
-			ptype = { fnptr = true, ret = ptype, params = fnparams, pointer = 0 }
+			ptype = { fnptr = true, ret = ptype, params = fnparams, pointer = 0, cconv = cconv }
 		else
 			name_tok = self:consume("ident")
 			-- array-notation params: char *argv[] → treat as pointer (consume and discard brackets)
 			if self:consume("[") then
 				while not self:consume("]") do self:advance() end
-				ptype = { qualifiers = ptype.qualifiers, name = ptype.name, inline_kind = ptype.inline_kind,
-					inline_tag = ptype.inline_tag, inline_fields = ptype.inline_fields,
-					inline_variants = ptype.inline_variants, inline_attrs = ptype.inline_attrs,
-					pointer = ptype.pointer + 1, reference = ptype.reference }
+				ptype = {
+					qualifiers = ptype.qualifiers,
+					name = ptype.name,
+					inline_kind = ptype.inline_kind,
+					inline_tag = ptype.inline_tag,
+					inline_fields = ptype.inline_fields,
+					inline_variants = ptype.inline_variants,
+					inline_attrs = ptype.inline_attrs,
+					pointer = ptype.pointer + 1,
+					reference = ptype.reference
+				}
 			end
 		end
 		params[#params + 1] = { type = ptype, name = name_tok and name_tok.ident }
@@ -464,9 +500,11 @@ function Parser:parseDecl()
 				if not tag_tok then error("expected tag or '{' after " .. kw_str) end
 				local name = self:expect("ident")
 				self:expect(";")
-				return {{ kind = "typedef_alias",
+				return { {
+					kind = "typedef_alias",
 					type = { qualifiers = {}, name = kw_str .. " " .. tag_tok.ident, pointer = 0 },
-					name = name.ident }}
+					name = name.ident
+				} }
 			end
 
 			self:expect("{")
@@ -480,17 +518,24 @@ function Parser:parseDecl()
 			end
 
 			local first_name = self:expect("ident")
-			local result = {{ kind = "typedef_struct", kw = kw_str,
-				tag = tag_tok and tag_tok.ident, fields = fields,
-				name = first_name.ident, attrs = attrs }}
+			local result = { {
+				kind = "typedef_struct",
+				kw = kw_str,
+				tag = tag_tok and tag_tok.ident,
+				fields = fields,
+				name = first_name.ident,
+				attrs = attrs
+			} }
 			-- additional declarators: typedef struct { } Foo, *FooPtr;
 			while self:consume(",") do
 				local ptr = 0
 				while self:consume("*") do ptr = ptr + 1 end
 				local alias_name = self:expect("ident")
-				result[#result + 1] = { kind = "typedef_alias",
+				result[#result + 1] = {
+					kind = "typedef_alias",
 					type = { qualifiers = {}, name = first_name.ident, pointer = ptr },
-					name = alias_name.ident }
+					name = alias_name.ident
+				}
 			end
 			self:expect(";")
 			return result
@@ -503,24 +548,25 @@ function Parser:parseDecl()
 			local variants = self:parseVariants()
 			local name = self:expect("ident")
 			self:expect(";")
-			return {{ kind = "typedef_enum", tag = tag_tok and tag_tok.ident, variants = variants, name = name.ident }}
+			return { { kind = "typedef_enum", tag = tag_tok and tag_tok.ident, variants = variants, name = name.ident } }
 		end
 
 		local ret = self:parseType()
 
-		-- function pointer: typedef ret (*name)(params);
+		-- function pointer: typedef ret (__stdcall *name)(params);
 		if self:consume("(") then
+			local cconv = self:consumeCallingConvention()
 			self:expect("*")
 			local name = self:expect("ident")
 			self:expect(")")
 			local params = self:parseParams()
 			self:expect(";")
-			return {{ kind = "typedef_fnptr", ret = ret, name = name.ident, params = params }}
+			return { { kind = "typedef_fnptr", ret = ret, name = name.ident, params = params, cconv = cconv } }
 		end
 
 		local name = self:expect("ident")
 		self:expect(";")
-		return {{ kind = "typedef_alias", type = ret, name = name.ident }}
+		return { { kind = "typedef_alias", type = ret, name = name.ident } }
 	end
 
 	if self:consume("extern") then
@@ -531,7 +577,7 @@ function Parser:parseDecl()
 		end
 		local asm_name = self:parseAsmName()
 		self:expect(";")
-		return {{ kind = "extern_var", type = type, name = name.ident, asm_name = asm_name }}
+		return { { kind = "extern_var", type = type, name = name.ident, asm_name = asm_name } }
 	end
 
 	-- bare struct/union/enum definition: struct Foo { ... };
@@ -549,24 +595,30 @@ function Parser:parseDecl()
 				fields = self:parseFields()
 			end
 			self:expect(";")
-			return {{ kind = "struct_def", kw = kw_tok.variant,
-				tag = tag_tok and tag_tok.ident, fields = fields, variants = variants }}
+			return { {
+				kind = "struct_def",
+				kw = kw_tok.variant,
+				tag = tag_tok and tag_tok.ident,
+				fields = fields,
+				variants = variants
+			} }
 		end
 		-- forward declaration: struct Foo;
 		if tag_tok and self:peek() and self:peek().variant == ";" then
 			self:advance()
-			return {{ kind = "struct_def", kw = kw_tok.variant, tag = tag_tok.ident }}
+			return { { kind = "struct_def", kw = kw_tok.variant, tag = tag_tok.ident } }
 		end
 		self.ptr = saved
 	end
 
 	local ret = self:parseType()
+	local cconv = self:consumeCallingConvention()
 	local name = self:expect("ident")
 	local params = self:parseParams()
 	local asm_name = self:parseAsmName()
 	local attrs = self:parseAttrs()
 	self:expect(";")
-	return {{ kind = "fn_decl", ret = ret, name = name.ident, params = params, asm_name = asm_name, attrs = attrs }}
+	return { { kind = "fn_decl", ret = ret, name = name.ident, params = params, asm_name = asm_name, attrs = attrs, cconv = cconv } }
 end
 
 ---@param tokens ffix.c.Tokenizer.Token[]

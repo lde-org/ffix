@@ -46,7 +46,8 @@ end
 ---@return ffix.c.Parser.Type
 function Context:rewriteType(t)
 	if t.fnptr then
-		return { fnptr = true, ret = self:rewriteType(t.ret), params = self:rewriteParams(t.params), pointer = t.pointer }
+		return { fnptr = true, ret = self:rewriteType(t.ret), params = self:rewriteParams(t.params), pointer = t.pointer, cconv =
+		t.cconv }
 	end
 	if t.inline_kind then
 		return self:rewriteInlineType(t)
@@ -109,9 +110,9 @@ function Context:rewriteNode(node)
 	elseif k == "typedef_enum" then
 		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), variants = self:rewriteVariants(node.variants) }
 	elseif k == "typedef_fnptr" then
-		return { kind = k, name = renamed, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params) }
+			return { kind = k, name = renamed, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params), cconv = node.cconv }
 	elseif k == "fn_decl" then
-		return { kind = k, name = renamed, asm_name = node.asm_name or node.name, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params), attrs = node.attrs }
+			return { kind = k, name = renamed, asm_name = node.asm_name or node.name, ret = self:rewriteType(node.ret), params = self:rewriteParams(node.params), attrs = node.attrs, cconv = node.cconv }
 	elseif k == "extern_var" then
 		return { kind = k, name = renamed, asm_name = node.name, type = self:rewriteType(node.type) }
 	elseif k == "struct_def" then

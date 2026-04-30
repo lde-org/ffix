@@ -252,3 +252,54 @@ typedef struct {
 	union { struct { int x; int y; }; int arr[2]; };
 } S;]])
 end)
+
+-- calling conventions
+
+test.it("typedef fnptr with __stdcall roundtrips", function()
+	test.equal(
+		roundtrip("typedef int(__stdcall *CB)(void);"),
+		"typedef int(__stdcall *CB)(void);"
+	)
+end)
+
+test.it("typedef fnptr with __cdecl roundtrips", function()
+	test.equal(
+		roundtrip("typedef void(__cdecl *CB)(int, int);"),
+		"typedef void(__cdecl *CB)(int, int);"
+	)
+end)
+
+test.it("typedef fnptr with __fastcall roundtrips", function()
+	test.equal(
+		roundtrip("typedef long(__fastcall *Fn)(long, long);"),
+		"typedef long(__fastcall *Fn)(long, long);"
+	)
+end)
+
+test.it("fn_decl with __stdcall roundtrips", function()
+	test.equal(
+		roundtrip("int __stdcall foo(int x);"),
+		"int __stdcall foo(int x);"
+	)
+end)
+
+test.it("fn_decl with __cdecl roundtrips", function()
+	test.equal(
+		roundtrip("void __cdecl bar(void);"),
+		"void __cdecl bar(void);"
+	)
+end)
+
+test.it("struct field fnptr with __stdcall roundtrips", function()
+	test.equal(roundtrip("typedef struct { int(__stdcall *cb)(void); } S;"), [[
+typedef struct {
+	int(__stdcall *cb)(void);
+} S;]])
+end)
+
+test.it("fn_decl param fnptr with __stdcall roundtrips", function()
+	test.equal(
+		roundtrip("void set_cb(int(__stdcall *cb)(void));"),
+		"void set_cb(int(__stdcall *cb)(void));"
+	)
+end)

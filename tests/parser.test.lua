@@ -13,25 +13,25 @@ end
 
 test.it("typedef primitive alias", function()
 	test.match(parse("typedef int MyInt;"), {
-		{ kind = "typedef_alias", name = "MyInt", type = { name = "int", pointer = 0, qualifiers = {} } },
+		{ kind = "typedef_alias", name = "MyInt", type = { name = "int", pointer = 0, qualifiers = {} } }
 	})
 end)
 
 test.it("typedef pointer alias", function()
 	test.match(parse("typedef char * string_t;"), {
-		{ kind = "typedef_alias", name = "string_t", type = { name = "char", pointer = 1 } },
+		{ kind = "typedef_alias", name = "string_t", type = { name = "char", pointer = 1 } }
 	})
 end)
 
 test.it("typedef with qualifier", function()
 	test.match(parse("typedef const unsigned int uint_t;"), {
-		{ kind = "typedef_alias", name = "uint_t", type = { name = "int", qualifiers = { "const", "unsigned" } } },
+		{ kind = "typedef_alias", name = "uint_t", type = { name = "int", qualifiers = { "const", "unsigned" } } }
 	})
 end)
 
 test.it("typedef double-pointer", function()
 	test.match(parse("typedef void ** handle_t;"), {
-		{ kind = "typedef_alias", name = "handle_t", type = { name = "void", pointer = 2 } },
+		{ kind = "typedef_alias", name = "handle_t", type = { name = "void", pointer = 2 } }
 	})
 end)
 
@@ -45,15 +45,15 @@ test.it("typedef anonymous struct", function()
 			tag = nil,
 			fields = {
 				{ name = "x", type = { name = "int" } },
-				{ name = "y", type = { name = "int" } },
-			},
-		},
+				{ name = "y", type = { name = "int" } }
+			}
+		}
 	})
 end)
 
 test.it("typedef struct with tag", function()
 	test.match(parse("typedef struct Node { int val; } Node;"), {
-		{ kind = "typedef_struct", name = "Node", tag = "Node" },
+		{ kind = "typedef_struct", name = "Node", tag = "Node" }
 	})
 end)
 
@@ -61,14 +61,14 @@ test.it("typedef struct with pointer field", function()
 	test.match(parse("typedef struct { struct Node * next; } Node;"), {
 		{
 			kind = "typedef_struct",
-			fields = { { name = "next", type = { name = "struct Node", pointer = 1 } } },
-		},
+			fields = { { name = "next", type = { name = "struct Node", pointer = 1 } } }
+		}
 	})
 end)
 
 test.it("typedef struct with array field", function()
 	test.match(parse("typedef struct { char buf[256]; } Buf;"), {
-		{ kind = "typedef_struct", fields = { { name = "buf", type = { name = "char" } } } },
+		{ kind = "typedef_struct", fields = { { name = "buf", type = { name = "char" } } } }
 	})
 end)
 
@@ -79,9 +79,9 @@ test.it("typedef struct with multiple fields of different types", function()
 			name = "Record",
 			fields = {
 				{ name = "id",   type = { name = "int", qualifiers = { "unsigned" } } },
-				{ name = "name", type = { name = "char", pointer = 1 } },
-			},
-		},
+				{ name = "name", type = { name = "char", pointer = 1 } }
+			}
+		}
 	})
 end)
 
@@ -92,14 +92,14 @@ test.it("typedef enum", function()
 		{
 			kind = "typedef_enum",
 			name = "Color",
-			variants = { { name = "RED" }, { name = "GREEN" }, { name = "BLUE" } },
-		},
+			variants = { { name = "RED" }, { name = "GREEN" }, { name = "BLUE" } }
+		}
 	})
 end)
 
 test.it("typedef enum with tag", function()
 	test.match(parse("typedef enum Dir { UP, DOWN, } Dir;"), {
-		{ kind = "typedef_enum", name = "Dir", tag = "Dir" },
+		{ kind = "typedef_enum", name = "Dir", tag = "Dir" }
 	})
 end)
 
@@ -107,7 +107,7 @@ end)
 
 test.it("typedef function pointer no params", function()
 	test.match(parse("typedef void (*Callback)(void);"), {
-		{ kind = "typedef_fnptr", name = "Callback", ret = { name = "void" }, params = {} },
+		{ kind = "typedef_fnptr", name = "Callback", ret = { name = "void" }, params = {} }
 	})
 end)
 
@@ -119,9 +119,9 @@ test.it("typedef function pointer with params", function()
 			ret = { name = "int" },
 			params = {
 				{ type = { name = "void", pointer = 1 } },
-				{ type = { name = "void", pointer = 1 } },
-			},
-		},
+				{ type = { name = "void", pointer = 1 } }
+			}
+		}
 	})
 end)
 
@@ -131,8 +131,8 @@ test.it("typedef function pointer returning pointer", function()
 			kind = "typedef_fnptr",
 			name = "Getter",
 			ret = { name = "char", pointer = 1 },
-			params = { { type = { name = "int" } } },
-		},
+			params = { { type = { name = "int" } } }
+		}
 	})
 end)
 
@@ -140,7 +140,7 @@ end)
 
 test.it("void function no params", function()
 	test.match(parse("void init(void);"), {
-		{ kind = "fn_decl", name = "init", ret = { name = "void" }, params = {} },
+		{ kind = "fn_decl", name = "init", ret = { name = "void" }, params = {} }
 	})
 end)
 
@@ -152,9 +152,9 @@ test.it("function with named params", function()
 			ret = { name = "int" },
 			params = {
 				{ name = "a", type = { name = "int" } },
-				{ name = "b", type = { name = "int" } },
-			},
-		},
+				{ name = "b", type = { name = "int" } }
+			}
+		}
 	})
 end)
 
@@ -165,9 +165,9 @@ test.it("function with unnamed params", function()
 			name = "add",
 			params = {
 				{ name = nil, type = { name = "int" } },
-				{ name = nil, type = { name = "int" } },
-			},
-		},
+				{ name = nil, type = { name = "int" } }
+			}
+		}
 	})
 end)
 
@@ -177,8 +177,8 @@ test.it("function returning pointer", function()
 			kind = "fn_decl",
 			name = "strdup",
 			ret = { name = "char", pointer = 1 },
-			params = { { type = { name = "char", pointer = 1 } } },
-		},
+			params = { { type = { name = "char", pointer = 1 } } }
+		}
 	})
 end)
 
@@ -187,8 +187,8 @@ test.it("variadic function", function()
 		{
 			kind = "fn_decl",
 			name = "printf",
-			params = { { type = { name = "char", pointer = 1 } } },
-		},
+			params = { { type = { name = "char", pointer = 1 } } }
+		}
 	})
 end)
 
@@ -196,13 +196,13 @@ end)
 
 test.it("extern int", function()
 	test.match(parse("extern int errno;"), {
-		{ kind = "extern_var", name = "errno", type = { name = "int" } },
+		{ kind = "extern_var", name = "errno", type = { name = "int" } }
 	})
 end)
 
 test.it("extern pointer", function()
 	test.match(parse("extern char * environ;"), {
-		{ kind = "extern_var", name = "environ", type = { name = "char", pointer = 1 } },
+		{ kind = "extern_var", name = "environ", type = { name = "char", pointer = 1 } }
 	})
 end)
 
@@ -224,25 +224,25 @@ end)
 
 test.it("fn_decl with __asm__", function()
 	test.match(parse("int mylib_add(int a, int b) __asm__(\"add\");"), {
-		{ kind = "fn_decl", name = "mylib_add", asm_name = "add" },
+		{ kind = "fn_decl", name = "mylib_add", asm_name = "add" }
 	})
 end)
 
 test.it("fn_decl with asm (no underscores)", function()
 	test.match(parse("void mylib_free(void * ptr) asm(\"free\");"), {
-		{ kind = "fn_decl", name = "mylib_free", asm_name = "free" },
+		{ kind = "fn_decl", name = "mylib_free", asm_name = "free" }
 	})
 end)
 
 test.it("extern_var with __asm__", function()
 	test.match(parse("extern int mylib_errno __asm__(\"errno\");"), {
-		{ kind = "extern_var", name = "mylib_errno", asm_name = "errno" },
+		{ kind = "extern_var", name = "mylib_errno", asm_name = "errno" }
 	})
 end)
 
 test.it("fn_decl without __asm__ has nil asm_name", function()
 	test.match(parse("int add(int a, int b);"), {
-		{ kind = "fn_decl", name = "add", asm_name = nil },
+		{ kind = "fn_decl", name = "add", asm_name = nil }
 	})
 end)
 
@@ -250,13 +250,13 @@ end)
 
 test.it("struct field array size is preserved", function()
 	test.match(parse("typedef struct { char buf[256]; } Buf;"), {
-		{ kind = "typedef_struct", fields = { { name = "buf", type = { name = "char" }, array_size = "256" } } },
+		{ kind = "typedef_struct", fields = { { name = "buf", type = { name = "char" }, array_size = "256" } } }
 	})
 end)
 
 test.it("struct field symbolic array size is preserved", function()
 	test.match(parse("typedef struct { int data[MAX_SIZE]; } S;"), {
-		{ kind = "typedef_struct", fields = { { name = "data", array_size = "MAX_SIZE" } } },
+		{ kind = "typedef_struct", fields = { { name = "data", array_size = "MAX_SIZE" } } }
 	})
 end)
 
@@ -264,87 +264,99 @@ end)
 
 test.it("struct field __attribute__((aligned(4)))", function()
 	test.match(parse("typedef struct { int x __attribute__((aligned(4))); } S;"), {
-		{ kind = "typedef_struct", fields = {
-			{ name = "x", attrs = { { name = "aligned", args = "4" } } },
-		} },
+		{
+			kind = "typedef_struct",
+			fields = {
+				{ name = "x", attrs = { { name = "aligned", args = "4" } } }
+			}
+		}
 	})
 end)
 
 test.it("struct field __attribute__((packed))", function()
 	test.match(parse("typedef struct { char c __attribute__((packed)); } S;"), {
-		{ kind = "typedef_struct", fields = {
-			{ name = "c", attrs = { { name = "packed", args = nil } } },
-		} },
+		{
+			kind = "typedef_struct",
+			fields = {
+				{ name = "c", attrs = { { name = "packed", args = nil } } }
+			}
+		}
 	})
 end)
 
 test.it("struct field __attribute__((mode(__word__)))", function()
 	test.match(parse("typedef struct { int x __attribute__((mode(__word__))); } S;"), {
-		{ kind = "typedef_struct", fields = {
-			{ name = "x", attrs = { { name = "mode", args = "__word__" } } },
-		} },
+		{
+			kind = "typedef_struct",
+			fields = {
+				{ name = "x", attrs = { { name = "mode", args = "__word__" } } }
+			}
+		}
 	})
 end)
 
 test.it("struct field __attribute__((vector_size(16)))", function()
 	test.match(parse("typedef struct { float v __attribute__((vector_size(16))); } S;"), {
-		{ kind = "typedef_struct", fields = {
-			{ name = "v", attrs = { { name = "vector_size", args = "16" } } },
-		} },
+		{
+			kind = "typedef_struct",
+			fields = {
+				{ name = "v", attrs = { { name = "vector_size", args = "16" } } }
+			}
+		}
 	})
 end)
 
 test.it("struct __attribute__((packed)) before body", function()
 	test.match(parse("typedef struct __attribute__((packed)) { int x; } S;"), {
-		{ kind = "typedef_struct", attrs = { { name = "packed" } } },
+		{ kind = "typedef_struct", attrs = { { name = "packed" } } }
 	})
 end)
 
 test.it("struct __attribute__((packed)) after body", function()
 	test.match(parse("typedef struct { int x; } __attribute__((packed)) S;"), {
-		{ kind = "typedef_struct", attrs = { { name = "packed" } } },
+		{ kind = "typedef_struct", attrs = { { name = "packed" } } }
 	})
 end)
 
 test.it("struct __attribute__((aligned(8))) before body", function()
 	test.match(parse("typedef struct __attribute__((aligned(8))) { int x; } S;"), {
-		{ kind = "typedef_struct", attrs = { { name = "aligned", args = "8" } } },
+		{ kind = "typedef_struct", attrs = { { name = "aligned", args = "8" } } }
 	})
 end)
 
 test.it("fn_decl __attribute__((cdecl))", function()
 	test.match(parse("void foo(void) __attribute__((cdecl));"), {
-		{ kind = "fn_decl", name = "foo", attrs = { { name = "cdecl" } } },
+		{ kind = "fn_decl", name = "foo", attrs = { { name = "cdecl" } } }
 	})
 end)
 
 test.it("fn_decl __attribute__((stdcall))", function()
 	test.match(parse("int bar(int x) __attribute__((stdcall));"), {
-		{ kind = "fn_decl", name = "bar", attrs = { { name = "stdcall" } } },
+		{ kind = "fn_decl", name = "bar", attrs = { { name = "stdcall" } } }
 	})
 end)
 
 test.it("fn_decl __attribute__((fastcall))", function()
 	test.match(parse("void baz(void) __attribute__((fastcall));"), {
-		{ kind = "fn_decl", attrs = { { name = "fastcall" } } },
+		{ kind = "fn_decl", attrs = { { name = "fastcall" } } }
 	})
 end)
 
 test.it("fn_decl __attribute__((thiscall))", function()
 	test.match(parse("void qux(void) __attribute__((thiscall));"), {
-		{ kind = "fn_decl", attrs = { { name = "thiscall" } } },
+		{ kind = "fn_decl", attrs = { { name = "thiscall" } } }
 	})
 end)
 
 test.it("fn_decl with __asm__ and __attribute__ preserves both", function()
 	test.match(parse("void foo(void) __asm__(\"_foo\") __attribute__((cdecl));"), {
-		{ kind = "fn_decl", asm_name = "_foo", attrs = { { name = "cdecl" } } },
+		{ kind = "fn_decl", asm_name = "_foo", attrs = { { name = "cdecl" } } }
 	})
 end)
 
 test.it("field has no attrs when none present", function()
 	test.match(parse("typedef struct { int x; } S;"), {
-		{ kind = "typedef_struct", fields = { { name = "x", attrs = nil, array_size = nil } } },
+		{ kind = "typedef_struct", fields = { { name = "x", attrs = nil, array_size = nil } } }
 	})
 end)
 
@@ -352,7 +364,7 @@ end)
 
 test.it("typedef reference alias", function()
 	test.match(parse("typedef int & IntRef;"), {
-		{ kind = "typedef_alias", name = "IntRef", type = { name = "int", pointer = 0, reference = true } },
+		{ kind = "typedef_alias", name = "IntRef", type = { name = "int", pointer = 0, reference = true } }
 	})
 end)
 
@@ -363,21 +375,21 @@ test.it("function with reference param", function()
 			name = "swap",
 			params = {
 				{ name = "a", type = { name = "int", reference = true } },
-				{ name = "b", type = { name = "int", reference = true } },
-			},
-		},
+				{ name = "b", type = { name = "int", reference = true } }
+			}
+		}
 	})
 end)
 
 test.it("function returning reference", function()
 	test.match(parse("int & at(int idx);"), {
-		{ kind = "fn_decl", name = "at", ret = { name = "int", reference = true } },
+		{ kind = "fn_decl", name = "at", ret = { name = "int", reference = true } }
 	})
 end)
 
 test.it("non-reference type has nil reference field", function()
 	test.match(parse("typedef int MyInt;"), {
-		{ kind = "typedef_alias", name = "MyInt", type = { reference = nil } },
+		{ kind = "typedef_alias", name = "MyInt", type = { reference = nil } }
 	})
 end)
 
@@ -389,13 +401,20 @@ test.it("anonymous union field inside struct", function()
 			kind = "typedef_struct",
 			name = "Foo",
 			fields = {
-				{ name = nil, type = { inline_kind = "union", inline_tag = nil, inline_fields = {
-					{ name = "a", type = { name = "int" } },
-					{ name = "b", type = { name = "float" } },
-				} } },
-				{ name = "c", type = { name = "int" } },
-			},
-		},
+				{
+					name = nil,
+					type = {
+						inline_kind = "union",
+						inline_tag = nil,
+						inline_fields = {
+							{ name = "a", type = { name = "int" } },
+							{ name = "b", type = { name = "float" } }
+						}
+					}
+				},
+				{ name = "c", type = { name = "int" } }
+			}
+		}
 	})
 end)
 
@@ -405,12 +424,19 @@ test.it("named inline struct field", function()
 			kind = "typedef_struct",
 			name = "Entity",
 			fields = {
-				{ name = "pos", type = { inline_kind = "struct", inline_tag = nil, inline_fields = {
-					{ name = "x", type = { name = "int" } },
-					{ name = "y", type = { name = "int" } },
-				} } },
-			},
-		},
+				{
+					name = "pos",
+					type = {
+						inline_kind = "struct",
+						inline_tag = nil,
+						inline_fields = {
+							{ name = "x", type = { name = "int" } },
+							{ name = "y", type = { name = "int" } }
+						}
+					}
+				}
+			}
+		}
 	})
 end)
 
@@ -419,9 +445,9 @@ test.it("tagged inline union field", function()
 		{
 			kind = "typedef_struct",
 			fields = {
-				{ name = "val", type = { inline_kind = "union", inline_tag = "Val" } },
-			},
-		},
+				{ name = "val", type = { inline_kind = "union", inline_tag = "Val" } }
+			}
+		}
 	})
 end)
 
@@ -431,10 +457,10 @@ test.it("anonymous struct inside union", function()
 			kind = "typedef_struct",
 			name = "Vec2",
 			fields = {
-				{ name = nil, type = { inline_kind = "struct" } },
-				{ name = "flat", type = { name = "long" } },
-			},
-		},
+				{ name = nil,    type = { inline_kind = "struct" } },
+				{ name = "flat", type = { name = "long" } }
+			}
+		}
 	})
 end)
 
@@ -451,12 +477,12 @@ test.it("function pointer field in struct", function()
 						ret = { name = "int" },
 						params = {
 							{ type = { qualifiers = { "const" }, name = "foo", pointer = 1 } },
-							{ type = { name = "void", pointer = 1 } },
-						},
-					},
-				},
-			},
-		},
+							{ type = { name = "void", pointer = 1 } }
+						}
+					}
+				}
+			}
+		}
 	})
 end)
 
@@ -465,12 +491,211 @@ test.it("nested anonymous unions", function()
 		{
 			kind = "typedef_struct",
 			fields = {
-				{ name = nil, type = { inline_kind = "union", inline_fields = {
-					{ name = nil, type = { inline_kind = "struct" } },
-					{ name = "arr", type = { name = "int" }, array_size = "2" },
-				} } },
-			},
-		},
+				{
+					name = nil,
+					type = {
+						inline_kind = "union",
+						inline_fields = {
+							{ name = nil,   type = { inline_kind = "struct" } },
+							{ name = "arr", type = { name = "int" },          array_size = "2" }
+						}
+					}
+				}
+			}
+		}
+	})
+end)
+
+-- calling conventions
+
+test.it("typedef fnptr with __stdcall", function()
+	test.match(parse("typedef int(__stdcall *CB)(void);"), {
+		{ kind = "typedef_fnptr", name = "CB", ret = { name = "int" }, params = {}, cconv = "__stdcall" }
+	})
+end)
+
+test.it("typedef fnptr with __cdecl", function()
+	test.match(parse("typedef void(__cdecl *CB)(int, int);"), {
+		{
+			kind = "typedef_fnptr",
+			name = "CB",
+			ret = { name = "void" },
+			cconv = "__cdecl",
+			params = {
+				{ type = { name = "int" } },
+				{ type = { name = "int" } }
+			}
+		}
+	})
+end)
+
+test.it("typedef fnptr with __fastcall", function()
+	test.match(parse("typedef long(__fastcall *Fn)(long, long);"), {
+		{ kind = "typedef_fnptr", name = "Fn", ret = { name = "long" }, cconv = "__fastcall" }
+	})
+end)
+
+test.it("typedef fnptr with __thiscall", function()
+	test.match(parse("typedef int(__thiscall *Method)(void *, int);"), {
+		{ kind = "typedef_fnptr", name = "Method", ret = { name = "int" }, cconv = "__thiscall" }
+	})
+end)
+
+test.it("typedef fnptr with __vectorcall", function()
+	test.match(parse("typedef float(__vectorcall *VecFn)(float, float);"), {
+		{ kind = "typedef_fnptr", name = "VecFn", ret = { name = "float" }, cconv = "__vectorcall" }
+	})
+end)
+
+test.it("typedef fnptr with __pascal", function()
+	test.match(parse("typedef int(__pascal *PascalFn)(int);"), {
+		{ kind = "typedef_fnptr", name = "PascalFn", ret = { name = "int" }, cconv = "__pascal" }
+	})
+end)
+
+test.it("typedef fnptr without cconv has nil cconv", function()
+	test.match(parse("typedef void (*CB)(void);"), {
+		{ kind = "typedef_fnptr", name = "CB", ret = { name = "void" }, params = {}, cconv = nil }
+	})
+end)
+
+-- fn_decl with calling convention
+
+test.it("fn_decl with __stdcall", function()
+	test.match(parse("int __stdcall foo(int x);"), {
+		{ kind = "fn_decl", name = "foo", ret = { name = "int" }, cconv = "__stdcall" }
+	})
+end)
+
+test.it("fn_decl with __cdecl", function()
+	test.match(parse("void __cdecl bar(void);"), {
+		{ kind = "fn_decl", name = "bar", ret = { name = "void" }, params = {}, cconv = "__cdecl" }
+	})
+end)
+
+test.it("fn_decl with __fastcall", function()
+	test.match(parse("long __fastcall baz(long a, long b);"), {
+		{ kind = "fn_decl", name = "baz", ret = { name = "long" }, cconv = "__fastcall" }
+	})
+end)
+
+test.it("fn_decl with __thiscall", function()
+	test.match(parse("int __thiscall meth(void * self, int x);"), {
+		{ kind = "fn_decl", name = "meth", ret = { name = "int" }, cconv = "__thiscall" }
+	})
+end)
+
+test.it("fn_decl without cconv has nil cconv", function()
+	test.match(parse("int add(int a, int b);"), {
+		{ kind = "fn_decl", name = "add", ret = { name = "int" }, cconv = nil }
+	})
+end)
+
+-- struct field function pointer with calling convention
+
+test.it("struct field fnptr with __stdcall", function()
+	test.match(parse("typedef struct { int(__stdcall *cb)(void); } S;"), {
+		{
+			kind = "typedef_struct",
+			name = "S",
+			fields = {
+				{
+					name = "cb",
+					type = {
+						fnptr = true,
+						cconv = "__stdcall",
+						ret = { name = "int" },
+						params = {}
+					}
+				}
+			}
+		}
+	})
+end)
+
+test.it("struct field fnptr with __cdecl", function()
+	test.match(parse("typedef struct { void(__cdecl *fn)(const char *); } S;"), {
+		{
+			kind = "typedef_struct",
+			name = "S",
+			fields = {
+				{
+					name = "fn",
+					type = {
+						fnptr = true,
+						cconv = "__cdecl",
+						ret = { name = "void" },
+						params = {
+							{ type = { qualifiers = { "const" }, name = "char", pointer = 1 } }
+						}
+					}
+				}
+			}
+		}
+	})
+end)
+
+test.it("struct field fnptr without cconv has nil cconv", function()
+	test.match(parse("typedef struct { int (*cb)(const foo *, void *); } S;"), {
+		{
+			kind = "typedef_struct",
+			name = "S",
+			fields = {
+				{
+					name = "cb",
+					type = {
+						fnptr = true,
+						ret = { name = "int" },
+						params = {
+							{ type = { qualifiers = { "const" }, name = "foo", pointer = 1 } },
+							{ type = { name = "void", pointer = 1 } }
+						}
+					}
+				}
+			}
+		}
+	})
+end)
+
+-- function pointer param with calling convention
+
+test.it("fn_decl param fnptr with __stdcall", function()
+	test.match(parse("void set_cb(int(__stdcall *cb)(void));"), {
+		{
+			kind = "fn_decl",
+			name = "set_cb",
+			ret = { name = "void" },
+			params = {
+				{
+					name = "cb",
+					type = {
+						fnptr = true,
+						cconv = "__stdcall",
+						ret = { name = "int" },
+						params = {}
+					}
+				}
+			}
+		}
+	})
+end)
+
+test.it("fn_decl param fnptr without cconv has nil cconv", function()
+	test.match(parse("void register_cb(int (*cb)(int));"), {
+		{
+			kind = "fn_decl",
+			name = "register_cb",
+			params = {
+				{
+					name = "cb",
+					type = {
+						fnptr = true,
+						ret = { name = "int" },
+						params = { { type = { name = "int" } } }
+					}
+				}
+			}
+		}
 	})
 end)
 
@@ -480,11 +705,4 @@ test.it("returns false on invalid input", function()
 	local tokens = Tokenizer.new():tokenize("int;")
 	local ok, nodes = Parser.new():parse(tokens)
 	test.falsy(ok)
-end)
-
-test.it("calling convention function pointer parses", function()
-	-- e.g. typedef LRESULT(__stdcall *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
-	local tokens = Tokenizer.new():tokenize("typedef int(__stdcall *CB)(void);")
-	local ok = Parser.new():parse(tokens)
-	test.truthy(ok)
 end)
