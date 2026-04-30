@@ -133,8 +133,8 @@ test.it("metatype registers methods accessible on new instances", function()
 	c:cdef("typedef struct { int x; int y; } Point;")
 	c:metatype("Point", {
 		__index = {
-			sum = function(self) return self.x + self.y end,
-		},
+			sum = function(self) return self.x + self.y end
+		}
 	})
 	local p = c:new("Point", { x = 3, y = 4 })
 	test.equal(p:sum(), 7)
@@ -144,7 +144,7 @@ test.it("metatype __tostring is called on tostring()", function()
 	local c = ctx()
 	c:cdef("typedef struct { int n; } Num;")
 	c:metatype("Num", {
-		__tostring = function(self) return "Num(" .. self.n .. ")" end,
+		__tostring = function(self) return "Num(" .. self.n .. ")" end
 	})
 	local v = c:new("Num", { n = 99 })
 	test.equal(tostring(v), "Num(99)")
@@ -250,8 +250,8 @@ test.it("no-prefix context: metatype registers methods", function()
 	c:cdef("typedef struct { int x; int y; } AutoPt;")
 	c:metatype("AutoPt", {
 		__index = {
-			sum = function(self) return self.x + self.y end,
-		},
+			sum = function(self) return self.x + self.y end
+		}
 	})
 	local p = c:new("AutoPt", { x = 10, y = 20 })
 	test.equal(p:sum(), 30)
@@ -512,6 +512,12 @@ test.it("sizeof enum tag resolves to prefixed tag", function()
 	test.equal(c:sizeof("enum Color"), c:sizeof("Color"))
 end)
 
+test.it("sizeof union returns correct size", function()
+	local c = ctx()
+	c:cdef("typedef union { int x; float y; } Data;")
+	test.equal(c:sizeof("Data"), 4)
+end)
+
 test.it("typeof struct tag returns usable ctype", function()
 	local c = ctx()
 	c:cdef("typedef struct { float r; float g; float b; } RGB;")
@@ -587,7 +593,7 @@ test.it("unknown type does NOT silently fall through to ffi", function()
 	-- c1 registers the type, c2 never does
 	c1:cdef("typedef struct { int x; } Canary;")
 	local ok = pcall(function() c2:sizeof("Canary") end)
-	test.falsy(ok)  -- c2 must not resolve c1's prefixed name
+	test.falsy(ok) -- c2 must not resolve c1's prefixed name
 end)
 
 test.it("const unknown type errors", function()
@@ -669,7 +675,7 @@ test.it("metatype with ctype passes through", function()
 	c:cdef("typedef struct { int x; } Meta2;")
 	local ct = c:typeof("Meta2")
 	c:metatype(ct, {
-		__index = { doubled = function(self) return self.x * 2 end },
+		__index = { doubled = function(self) return self.x * 2 end }
 	})
 	local v = c:new("Meta2", { x = 5 })
 	test.equal(v:doubled(), 10)

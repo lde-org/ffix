@@ -46,8 +46,14 @@ end
 ---@return ffix.c.Parser.Type
 function Context:rewriteType(t)
 	if t.fnptr then
-		return { fnptr = true, ret = self:rewriteType(t.ret), params = self:rewriteParams(t.params), pointer = t.pointer, cconv =
-		t.cconv }
+		return {
+			fnptr = true,
+			ret = self:rewriteType(t.ret),
+			params = self:rewriteParams(t.params),
+			pointer = t.pointer,
+			cconv =
+				t.cconv
+		}
 	end
 	if t.inline_kind then
 		return self:rewriteInlineType(t)
@@ -106,7 +112,7 @@ function Context:rewriteNode(node)
 			fields[#fields + 1] = { type = self:rewriteType(f.type), name = f.name, array_size = f.array_size, attrs = f.attrs }
 		end
 
-		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), fields = fields, attrs = node.attrs }
+		return { kind = k, kw = node.kw, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), fields = fields, attrs = node.attrs }
 	elseif k == "typedef_enum" then
 		return { kind = k, name = renamed, tag = node.tag and (self.names[node.tag] or node.tag), variants = self:rewriteVariants(node.variants) }
 	elseif k == "typedef_fnptr" then
